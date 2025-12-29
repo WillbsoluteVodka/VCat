@@ -46,6 +46,14 @@ class LegacyBehaviorAdapter:
     def resource_path(self, value):
         setattr(self._inner, "resource_path", value)
 
+    @property
+    def current_state(self):
+        return getattr(self._inner, "current_state", None)
+
+    @current_state.setter
+    def current_state(self, value):
+        setattr(self._inner, "current_state", value)
+
     # Delegate commonly used methods
     def perform_action(self, parent, callback, ID=None):
         return self._inner.perform_action(parent, callback, ID)

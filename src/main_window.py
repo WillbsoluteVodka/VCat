@@ -112,14 +112,33 @@ class PetApp(QMainWindow):
         else:
             print("Toolbar icon not activated.")
     def update_pet(self, new_kind, new_color):
-        # Minimal update: change kind/color in memory only (persistence disabled)
+        """Update pet kind and color, then reload the current behavior."""
+        # Stop all timers and animations
+        self.pet_behavior.stop_all_timers()
+        
+        # Update pet kind and color
         self.pet_kind = new_kind
         self.pet_color = new_color
         self.pet_behavior.pet_kind = new_kind
         self.pet_behavior.pet_color = new_color
-        # Restart the current behavior
-        if self.pet_behavior.current_state:
-            self.perform_action(self.pet_behavior, None)
+        
+        # Get current state and reload the GIF for that state
+        current_state = self.pet_behavior.get_state()
+        if current_state:
+            # Load the appropriate GIF for the new pet with current state
+            state_name = current_state.value  # Get the enum value name
+            gif_path = load_pet_data(new_kind, new_color, state_name)
+            
+            if gif_path:
+                # Update the pet label with new GIF
+                pet_movie = QMovie(gif_path)
+                self.pet_label.setMovie(pet_movie)
+                self.pet_label.setScaledContents(True)
+                pet_movie.start()
+                pet_movie.finished.connect(pet_movie.start)  # Loop the animation
+            
+            # Resume behavior from current state
+            self.pet_behavior.resume(self, lambda: self.check_switch_state(self.pet_behavior))
 
     def add_pet(self, pet_name, pet_kind, pet_color):
         """Add a new pet to the screen."""

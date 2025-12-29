@@ -651,31 +651,43 @@ class PetSettingDialog(QDialog):
 
         # Retrieve all pet kinds and colors
         pet_kinds_and_colors = get_all_pet_kinds_and_colors()
+        print("*"*20)
+        print(pet_kinds_and_colors)
 
         screen_width = self.parent_app.width()  # Use the parent app's width as screen width reference
         button_width = int(screen_width * 0.1)  # Set button width to 10% of screen width
 
         # Dynamically create buttons for each pair of pet kind and color
-        for pet_kind, colors, in pet_kinds_and_colors.items():
+        for pet_kind, colors in pet_kinds_and_colors.items():
 
             kind_label = QLabel(f"Pet Kind: {pet_kind}", self)
             kind_label.setAlignment(Qt.AlignCenter)
+            kind_label.setStyleSheet("""
+                                      font-size: 18px;
+                                      font-weight: bold;
+                                      font-family: 'Segoe UI Semibold', 'Noto Sans', 'Helvetica Neue', Arial, sans-serif;
+                                    """)
             scroll_layout.addWidget(kind_label)
 
             button_layout = QHBoxLayout()
-            for color, lock_flag in colors.items():
-                # Load the image for this pet kind and color
-                if lock_flag==False:
-                    gif_path = load_pet_data(pet_kind, color, "demo")
-                else:
-                    gif_path = load_pet_data(pet_kind, color, "lock")
+            button_layout.setSpacing(16)  # Keep consistent gaps between buttons
+            button_layout.setAlignment(Qt.AlignLeft)
+            for color in colors.keys():
+                # Load the image for this pet kind and color (lock functionality commented out)
+                gif_path = load_pet_data(pet_kind, color, "demo")
+                # if lock_flag==False:
+                #     gif_path = load_pet_data(pet_kind, color, "demo")
+                # else:
+                #     gif_path = load_pet_data(pet_kind, color, "lock")
 
                 # Create a QPushButton
                 button = QPushButton(self)
                 button.setFixedSize(button_width, button_width)  # Set dynamic size
                 button.setStyleSheet("""
-                                    border: none; 
-                                    background-color: green;
+                                    background-color: #c0c0c0;  /* silver base */
+                                    border: 3px solid #1b8f6a;   /* gem-like green border */
+                                    border-radius: 6px;        /* inwardly curved corners */
+                                    padding: 6px;               /* keep border tucked inside */
                                 """)
                 button_layout.addWidget(button)
 
@@ -683,6 +695,7 @@ class PetSettingDialog(QDialog):
                 gif_label = QLabel(button)
                 gif_label.setFixedSize(button_width, button_width)  # Same size as button
                 gif_label.setAlignment(Qt.AlignCenter)
+                gif_label.setStyleSheet("background: transparent;")
 
                 # Load and play the GIF
                 movie = QMovie(gif_path)
@@ -693,16 +706,18 @@ class PetSettingDialog(QDialog):
                 # Keep track of the active movies for cleanup later
                 self.active_movies.append(movie)
 
-                # Connect the button to save_settings
-
-                if lock_flag==True:
-                    button.clicked.connect(
-                        lambda _, k=pet_kind, c=color: self.unlock_pet(k, c)
-                    )
-                else:
-                    button.clicked.connect(
-                        lambda _, k=pet_kind, c=color: self.save_settings(k, c)
-                    )
+                # Connect the button to save_settings (unlock functionality commented out)
+                button.clicked.connect(
+                    lambda _, k=pet_kind, c=color: self.save_settings(k, c)
+                )
+                # if lock_flag==True:
+                #     button.clicked.connect(
+                #         lambda _, k=pet_kind, c=color: self.unlock_pet(k, c)
+                #     )
+                # else:
+                #     button.clicked.connect(
+                #         lambda _, k=pet_kind, c=color: self.save_settings(k, c)
+                #     )
 
 
             scroll_layout.addLayout(button_layout)

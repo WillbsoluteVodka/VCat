@@ -68,7 +68,7 @@ def get_all_pet_kinds_and_colors():
     }
     """
     try:
-        with open("pets_info.json", "r") as file:
+        with open("src/pets_info.json", "r") as file:
             data = json.load(file)
 
         all_pet_kinds_and_colors = {}
