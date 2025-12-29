@@ -6,6 +6,45 @@ This project is a customizable desktop pet application where users can choose a 
 ## Installation
 Follow these steps to install and run the application:
 
+### 方法一：使用启动脚本（推荐）
+
+1. 确保已安装 Python 3.8 或更高版本
+2. 在项目根目录下运行：
+```bash
+./run.sh
+```
+
+启动脚本会自动：
+- 创建虚拟环境（如果不存在）
+- 安装所需依赖
+- 启动应用程序
+
+### 方法二：手动安装
+
+1. 创建虚拟环境：
+```bash
+python3 -m venv venv
+```
+
+2. 激活虚拟环境：
+```bash
+source venv/bin/activate
+```
+
+3. 安装依赖：
+```bash
+pip install -r requirements.txt
+```
+
+4. 运行应用：
+```bash
+PYTHONPATH=$(pwd) python src/main_window.py
+```
+
+### 依赖说明
+- PyQt5 >= 5.15.0 (GUI 框架)
+- pyobjc-framework-Cocoa >= 9.0 (macOS 工具栏功能)
+
 ## Progress Checklist
 
 - [X] Basic features
