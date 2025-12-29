@@ -1,0 +1,30 @@
+{
+    "DEV_CAT": {
+        "Black": {
+            "demo": "gifs/DEV_CAT/Black/Black_cat_demo.gif",
+            "walk_right": "gifs/DEV_CAT/Black/Black_cat_walk_right.gif",
+            "walk_left": "gifs/DEV_CAT/Black/Black_cat_walk_left.gif",
+            "sit": "gifs/DEV_CAT/Black/Black_cat_sit.gif",
+            "sleep": "gifs/DEV_CAT/Black/Black_cat_sleep.gif",
+            "code": "gifs/DEV_CAT/Black/Black_cat_code.gif",
+            "start_move_portal": "gifs/DEV_CAT/Black/Black_cat_start_move_portal.gif",
+            "end_move_portal": "gifs/DEV_CAT/Black/Black_cat_end_move_portal.gif",
+            "touch_belly": "gifs/DEV_CAT/Black/Black_cat_touch_belly.gif",
+            "lock": "gifs/DEV_CAT/Black/strange.gif",
+            "lock_flag": false
+        },
+        "White": {
+            "demo": "gifs/DEV_CAT/White/White_cat_demo.gif",
+            "walk_right": "gifs/DEV_CAT/White/White_cat_walk_right.gif",
+            "walk_left": "gifs/DEV_CAT/White/White_cat_walk_left.gif",
+            "sit": "gifs/DEV_CAT/White/White_cat_sit.gif",
+            "sleep": "gifs/DEV_CAT/White/White_cat_sleep.gif",
+            "code": "gifs/DEV_CAT/White/White_cat_code.gif",
+            "start_move_portal": "gifs/DEV_CAT/White/White_cat_start_move_portal.gif",
+            "end_move_portal": "gifs/DEV_CAT/White/White_cat_end_move_portal.gif",
+            "touch_belly": "gifs/DEV_CAT/White/White_cat_touch_belly.gif",
+            "lock": "gifs/DEV_CAT/Black/strange.gif",
+            "lock_flag": false
+        }
+    }
+}
