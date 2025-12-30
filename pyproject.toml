@@ -3,10 +3,11 @@ name = "vcat"
 version = "0.1.0"
 description = "VCat - A desktop pet application"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     "PyQt5>=5.15.0",
     "pyobjc-framework-Cocoa>=9.0",
+    "supabase>=2.27.0",
 ]
 
 [build-system]
