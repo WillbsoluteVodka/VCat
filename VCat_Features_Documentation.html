@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VCat 功能文档</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        header p {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+
+        .nav {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 2px solid #e9ecef;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .nav a {
+            text-decoration: none;
+            color: #667eea;
+            padding: 10px 20px;
+            border-radius: 25px;
+            background: white;
+            transition: all 0.3s;
+            font-weight: 600;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .nav a:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 50px;
+            scroll-margin-top: 80px;
+        }
+
+        .section h2 {
+            color: #667eea;
+            font-size: 2.2em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .section-intro {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            border-left: 5px solid #667eea;
+        }
+
+        .feature-card {
+            background: #fff;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .feature-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2);
+            transform: translateY(-5px);
+        }
+
+        .feature-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .feature-icon {
+            font-size: 2em;
+            margin-right: 15px;
+        }
+
+        .feature-title {
+            font-size: 1.6em;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .feature-subtitle {
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-left: 55px;
+            margin-bottom: 15px;
+        }
+
+        .feature-description {
+            color: #495057;
+            margin-bottom: 15px;
+            line-height: 1.8;
+        }
+
+        .trigger-info {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+
+        .trigger-info strong {
+            color: #856404;
+        }
+
+        .code-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .code-info h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .code-location {
+            background: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 8px 0;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+            border-left: 3px solid #667eea;
+        }
+
+        .code-location .file-path {
+            color: #0066cc;
+            font-weight: 600;
+        }
+
+        .code-location .line-number {
+            color: #6c757d;
+            font-size: 0.85em;
+        }
+
+        .code-snippet {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-top: 10px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .code-snippet pre {
+            margin: 0;
+        }
+
+        .probability-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .state-diagram {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .state-flow {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .state-box {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .arrow {
+            color: #667eea;
+            font-size: 1.5em;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .tag {
+            background: #e7f3ff;
+            color: #0066cc;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .tag.auto {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .tag.manual {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .tag.interaction {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        footer {
+            background: #343a40;
+            color: white;
+            text-align: center;
+            padding: 30px;
+            font-size: 0.95em;
+        }
+
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #667eea;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s;
+            text-decoration: none;
+            font-size: 1.5em;
+        }
+
+        .back-to-top:hover {
+            background: #5568d3;
+            transform: translateY(-5px);
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .nav ul {
+                flex-direction: column;
+            }
+
+            .state-flow {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🐱 VCat 功能文档</h1>
+            <p>桌面宠物应用 - 完整功能与代码映射</p>
+        </header>
+
+        <nav class="nav">
+            <ul>
+                <li><a href="#auto-behaviors">自动行为</a></li>
+                <li><a href="#menu-features">菜单功能</a></li>
+                <li><a href="#feeding">喂食系统</a></li>
+                <li><a href="#toolbar">工具栏宠物</a></li>
+                <li><a href="#state-machine">状态机</a></li>
+                <li><a href="#network">网络功能</a></li>
+            </ul>
+        </nav>
+
+        <div class="content">
+            <!-- 自动行为部分 -->
+            <section id="auto-behaviors" class="section">
+                <h2>🤖 自动触发的宠物行为</h2>
+                <div class="section-intro">
+                    <p>这些行为由 <strong>BehaviorManager</strong> 自动调度，通过状态转换和随机概率触发。宠物会自主在不同状态间切换，无需用户干预。</p>
+                </div>
+
+                <!-- 行走 -->
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <span class="feature-icon">🚶</span>
+                        <span class="feature-title">行走 (WALKING)</span>
+                    </div>
+                    <div class="feature-subtitle">宠物在屏幕上随机移动</div>
+                    <div class="feature-description">
+                        宠物会随机选择方向在屏幕上走动，遇到边界时会转向。这是最基础和最常见的行为状态。
+                    </div>
+                    <div class="trigger-info">
+                        <strong>🎯 触发方式：</strong>自动从 STARTDEFAULT 或 SITTING 状态转换（5%概率继续行走，95%概率坐下）
+                    </div>
+                    <div class="code-info">
+                        <h4>📁 代码位置</h4>
+                        <div class="code-location">
+                            <span class="file-path">src/behavior/actions/pet_random_walk.py</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/behavior/pet_actions.py</span>
+                            <span class="line-number">→ pet_random_walk() 方法（第136行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/behavior/manager.py</span>
+                            <span class="line-number">→ advance_state() 状态转换逻辑（第45行）</span>
+                        </div>
+                    </div>
+                    <div class="tags">
+                        <span class="tag auto">自动触发</span>
+                        <span class="tag">动画行为</span>
+                        <span class="tag">位置移动</span>
+                    </div>
+                </div>
+
+                <!-- 坐下 -->
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <span class="feature-icon">🪑</span>
+                        <span class="feature-title">坐下 (SITTING)</span>
+                        <span class="probability-badge">95%概率</span>
+                    </div>
+                    <div class="feature-subtitle">宠物坐下休息，可触发摸肚子交互</div>
+                    <div class="feature-description">
+                        宠物停止移动并坐下。在此状态下，如果鼠标持续在宠物身上移动，会触发特殊的"摸肚子"动画（PLAYING状态）。这是连接多个状态的中转状态。
+                    </div>
+                    <div class="trigger-info">
+                        <strong>🎯 触发方式：</strong>
+                        <ul style="margin-top: 8px; margin-left: 20px;">
+                            <li>行走状态后 95% 概率自动坐下</li>
+                            <li>睡觉、编码、玩耍结束后返回坐下</li>
+                        </ul>
+                    </div>
+                    <div class="trigger-info" style="background: #e7f3ff; border-left-color: #0066cc; margin-top: 10px;">
+                        <strong>💡 特殊交互：</strong>鼠标在宠物身上持续移动 → 触发摸肚子动画
+                    </div>
+                    <div class="code-info">
+                        <h4>📁 代码位置</h4>
+                        <div class="code-location">
+                            <span class="file-path">src/behavior/actions/pet_sit.py</span>
+                            <span class="line-number">→ 坐下行为实现</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/behavior/pet_actions.py</span>
+                            <span class="line-number">→ pet_sit() 方法（第127行）</span>
+                        </div>
+                    </div>
+                    <div class="code-snippet">
+<pre># 状态转换逻辑（src/behavior/manager.py 第50-56行）
+elif current_state == PetActions.SITTING:
+    if random.random() <= 0.2:
+        behavior.set_state(PetActions.CODING)   # 20%概率编码
+    elif random.random() <= 0.3:
+        behavior.set_state(PetActions.SLEEPING) # 30%概率睡觉
+    else:
+        behavior.set_state(PetActions.WALKING)  # 50%概率行走</pre>
+                    </div>
+                    <div class="tags">
+                        <span class="tag auto">自动触发</span>
+                        <span class="tag interaction">可交互</span>
+                        <span class="tag">状态中转</span>
+                    </div>
+                </div>
+
+                <!-- 睡觉 -->
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <span class="feature-icon">😴</span>
+                        <span class="feature-title">睡觉 (SLEEPING)</span>
+                        <span class="probability-badge">30%概率</span>
+                    </div>
+                    <div class="feature-subtitle">宠物进入睡眠状态</div>
+                    <div class="feature-description">
+                        宠物会播放睡觉动画，持续一段时间后会醒来并返回到坐下状态。睡眠时间由代码中的定时器控制。
+                    </div>
+                    <div class="trigger-info">
+                        <strong>🎯 触发方式：</strong>坐下状态时 30% 概率进入睡眠
+                    </div>
+                    <div class="code-info">
+                        <h4>📁 代码位置</h4>
+                        <div class="code-location">
+                            <span class="file-path">src/behavior/actions/pet_sleep.py</span>
+                            <span class="line-number">→ 睡觉行为实现</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/behavior/pet_actions.py</span>
+                            <span class="line-number">→ pet_sleep() 方法（第152行）</span>
+                        </div>
+                    </div>
+                    <div class="tags">
+                        <span class="tag auto">自动触发</span>
+                        <span class="tag">动画行为</span>
+                        <span class="tag">定时结束</span>
+                    </div>
+                </div>
+
+                <!-- 编码 -->
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <span class="feature-icon">💻</span>
+                        <span class="feature-title">编码 (CODING)</span>
+                        <span class="probability-badge">20%概率</span>
+                    </div>
+                    <div class="feature-subtitle">宠物开始"工作"，会与系统交互</div>
+                    <div class="feature-description">
+                        这是VCat最有趣的功能之一！宠物会播放编码动画，然后执行实际的系统操作：
+                        <ul style="margin-top: 10px; margin-left: 20px;">
+                            <li><strong>99%情况：</strong>在桌面创建 <code>example.txt</code> 文件，写入 "Hello, what are you doing?" 并自动打开</li>
+                            <li><strong>1%情况：</strong>打开终端并执行Python脚本（执行 pet_code_sea_terminal.py）</li>
+                        </ul>
+                    </div>
+                    <div class="trigger-info">
+                        <strong>🎯 触发方式：</strong>坐下状态时 20% 概率开始编码
+                    </div>
+                    <div class="code-info">
+                        <h4>📁 代码位置</h4>
+                        <div class="code-location">
+                            <span class="file-path">src/behavior/actions/pet_code.py</span>
+                            <span class="line-number">→ 主要编码行为（run函数）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/behavior/actions/pet_code.py</span>
+                            <span class="line-number">→ runterminal() 打开终端（第49行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/behavior/actions/pet_code.py</span>
+                            <span class="line-number">→ showtxt() 创建文本文件（第62行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/behavior/actions/pet_code_sea_terminal.py</span>
+                            <span class="line-number">→ 终端执行的脚本</span>
+                        </div>
+                    </div>
+                    <div class="code-snippet">
+<pre># 编码行为核心逻辑（src/behavior/actions/pet_code.py 第30-43行）
+def after_initial_timer():
+    prob = random.random()
+    if prob < 0.99:
+        # 99%概率：创建并打开文本文件
+        showtxt(self)
+    else:
+        # 1%概率：打开终端执行Python脚本
+        path = self.resource_path("behavior/actions/pet_code_sea_terminal.py")
+        runterminal(self, "python " + path)
+    
+    # 5秒后结束编码状态
+    sleep_duration_timer = QTimer(parent)
+    sleep_duration_timer.setSingleShot(True)
+    sleep_duration_timer.timeout.connect(callback)
+    sleep_duration_timer.start(5000)</pre>
+                    </div>
+                    <div class="tags">
+                        <span class="tag auto">自动触发</span>
+                        <span class="tag">系统交互</span>
+                        <span class="tag">文件操作</span>
+                        <span class="tag">终端命令</span>
+                    </div>
+                </div>
+
+                <!-- 玩耍 -->
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <span class="feature-icon">😺</span>
+                        <span class="feature-title">玩耍/摸肚子 (PLAYING)</span>
+                    </div>
+                    <div class="feature-subtitle">鼠标交互触发的亲密动画</div>
+                    <div class="feature-description">
+                        当宠物坐下时，如果鼠标在宠物身上持续移动，宠物会展示"露肚子"的亲密动画。这是唯一需要用户交互的行为。鼠标离开宠物身体2秒后会结束此状态。
+                    </div>
+                    <div class="trigger-info">
+                        <strong>🎯 触发方式：</strong>坐下状态 + 鼠标在宠物身上持续移动
+                    </div>
+                    <div class="trigger-info" style="background: #f8d7da; border-left-color: #721c24; margin-top: 10px;">
+                        <strong>⚠️ 结束条件：</strong>鼠标离开宠物身体2秒后自动结束
+                    </div>
+                    <div class="code-info">
+                        <h4>📁 代码位置</h4>
+                        <div class="code-location">
+                            <span class="file-path">src/behavior/actions/pet_play.py</span>
+                            <span class="line-number">→ 摸肚子行为实现（run函数）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/behavior/pet_actions.py</span>
+                            <span class="line-number">→ pet_play() 方法（第133行）</span>
+                        </div>
+                    </div>
+                    <div class="code-snippet">
+<pre># 鼠标监控逻辑（src/behavior/actions/pet_play.py 第96-112行）
+def monitor_cursor():
+    if not self.play_monitoring_active:
+        return
+    
+    cursor_pos = QCursor.pos()
+    label_global_pos = self.pet_label.mapToGlobal(self.pet_label.rect().topLeft())
+    label_global_rect = QRect(label_global_pos, self.pet_label.size())
+    
+    if label_global_rect.contains(cursor_pos):
+        # 鼠标在宠物身上，重置计时器
+        if absence_timer.isActive():
+            absence_timer.stop()
+    else:
+        # 鼠标离开，启动2秒倒计时
+        if not absence_timer.isActive():
+            absence_timer.start(2000)</pre>
+                    </div>
+                    <div class="tags">
+                        <span class="tag interaction">用户交互</span>
+                        <span class="tag">鼠标感应</span>
+                        <span class="tag">动画行为</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 菜单功能部分 -->
+            <section id="menu-features" class="section">
+                <h2>📋 菜单栏功能（手动触发）</h2>
+                <div class="section-intro">
+                    <p>通过应用顶部的菜单栏触发，提供宠物设置、商店购物、网络配置等功能。</p>
+                </div>
+
+                <!-- Setting 菜单 -->
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <span class="feature-icon">⚙️</span>
+                        <span class="feature-title">Setting 菜单 - Change Pet</span>
+                    </div>
+                    <div class="feature-subtitle">更换宠物种类和颜色</div>
+                    <div class="feature-description">
+                        打开宠物设置对话框，显示所有可用的宠物种类和颜色。每个选项都会显示对应的动画预览。选择后立即更换当前宠物的外观。
+                    </div>
+                    <div class="trigger-info">
+                        <strong>🎯 触发方式：</strong>菜单栏 → Setting → Change Pet
+                    </div>
+                    <div class="code-info">
+                        <h4>📁 代码位置</h4>
+                        <div class="code-location">
+                            <span class="file-path">src/menu_bar.py</span>
+                            <span class="line-number">→ open_pet_setting_dialog() 方法（第388行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/menu_bar.py</span>
+                            <span class="line-number">→ PetSettingDialog 类（第635-756行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/main_window.py</span>
+                            <span class="line-number">→ update_pet() 更新宠物（第114行）</span>
+                        </div>
+                    </div>
+                    <div class="tags">
+                        <span class="tag manual">手动触发</span>
+                        <span class="tag">UI对话框</span>
+                        <span class="tag">外观更换</span>
+                    </div>
+                </div>
+
+                <!-- 宠物大小 -->
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <span class="feature-icon">🔍</span>
+                        <span class="feature-title">Setting 菜单 - Pet Size</span>
+                    </div>
+                    <div class="feature-subtitle">调整宠物显示大小</div>
+                    <div class="feature-description">
+                        <strong>Increase Size：</strong>每次增加 0.02 比例，最大 1.0<br>
+                        <strong>Decrease Size：</strong>每次减少 0.02 比例，最小 0.02
+                    </div>
+                    <div class="trigger-info">
+                        <strong>🎯 触发方式：</strong>菜单栏 → Setting → Pet Size → Increase/Decrease Size
+                    </div>
+                    <div class="code-info">
+                        <h4>📁 代码位置</h4>
+                        <div class="code-location">
+                            <span class="file-path">src/menu_bar.py</span>
+                            <span class="line-number">→ increase_pet_size()（第324行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/menu_bar.py</span>
+                            <span class="line-number">→ decrease_pet_size()（第328行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/main_window.py</span>
+                            <span class="line-number">→ increase_pet_size()（第181行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/main_window.py</span>
+                            <span class="line-number">→ decrease_pet_size()（第189行）</span>
+                        </div>
+                    </div>
+                    <div class="code-snippet">
+<pre># 增加宠物大小（src/main_window.py 第181-187行）
+def increase_pet_size(self):
+    self.pet_size_ratio = min(1.0, self.pet_size_ratio + 0.02)
+    screen_width = self.width()
+    screen_height = self.height()
+    self.pet_label.resize_for_window(screen_width, screen_height, 
+                                     self.pet_size_ratio)
+    print(f"Pet size increased. New ratio: {self.pet_size_ratio}")</pre>
+                    </div>
+                    <div class="tags">
+                        <span class="tag manual">手动触发</span>
+                        <span class="tag">大小调整</span>
+                    </div>
+                </div>
+
+                <!-- Go Up / Go Down -->
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <span class="feature-icon">⬆️⬇️</span>
+                        <span class="feature-title">Setting 菜单 - Go Up / Go Down</span>
+                    </div>
+                    <div class="feature-subtitle">在桌面和菜单栏间移动宠物</div>
+                    <div class="feature-description">
+                        <strong>Go Up：</strong>将宠物移动到 macOS 菜单栏，在菜单栏中显示会走动的迷你宠物图标<br>
+                        <strong>Go Down：</strong>将宠物从菜单栏返回桌面
+                    </div>
+                    <div class="trigger-info">
+                        <strong>🎯 触发方式：</strong>菜单栏 → Setting → Go Up/Down
+                    </div>
+                    <div class="code-info">
+                        <h4>📁 代码位置</h4>
+                        <div class="code-location">
+                            <span class="file-path">src/menu_bar.py</span>
+                            <span class="line-number">→ activate_toolbar_pet()（第314行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/menu_bar.py</span>
+                            <span class="line-number">→ deactivate_toolbar_pet()（第319行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/main_window.py</span>
+                            <span class="line-number">→ activate_toolbar_pet()（第74行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/main_window.py</span>
+                            <span class="line-number">→ deactivate_toolbar_pet()（第88行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/toolbar_pet.py</span>
+                            <span class="line-number">→ MacOSToolbarIcon 类（第39-164行）</span>
+                        </div>
+                    </div>
+                    <div class="tags">
+                        <span class="tag manual">手动触发</span>
+                        <span class="tag">位置切换</span>
+                        <span class="tag">macOS特性</span>
+                    </div>
+                </div>
+
+                <!-- 商店 -->
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <span class="feature-icon">🏪</span>
+                        <span class="feature-title">Shop 菜单 - Open Shop</span>
+                    </div>
+                    <div class="feature-subtitle">购买食物、玩具和魔法物品</div>
+                    <div class="feature-description">
+                        打开商店窗口，分为三个标签页：
+                        <ul style="margin-top: 10px; margin-left: 20px;">
+                            <li><strong>Food（食物）：</strong>Apple, Fish, Meat - 可喂养宠物</li>
+                            <li><strong>Toys（玩具）：</strong>Ball, Stick, Puzzle - 用于互动（待实现）</li>
+                            <li><strong>Magical Items（魔法物品）：</strong>Portal Key, Time Crystal - 特殊功能（待实现）</li>
+                        </ul>
+                    </div>
+                    <div class="trigger-info">
+                        <strong>🎯 触发方式：</strong>菜单栏 → Shop → Open Shop
+                    </div>
+                    <div class="code-info">
+                        <h4>📁 代码位置</h4>
+                        <div class="code-location">
+                            <span class="file-path">src/menu_bar.py</span>
+                            <span class="line-number">→ open_shop_window()（第332行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/menu_bar.py</span>
+                            <span class="line-number">→ ShopWindow 类（第394-629行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/menu_bar.py</span>
+                            <span class="line-number">→ create_item_card()（第575行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/menu_bar.py</span>
+                            <span class="line-number">→ purchase_item()（第614行）</span>
+                        </div>
+                    </div>
+                    <div class="tags">
+                        <span class="tag manual">手动触发</span>
+                        <span class="tag">UI对话框</span>
+                        <span class="tag">商品系统</span>
+                    </div>
+                </div>
+
+                <!-- 网络参数 -->
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <span class="feature-icon">🌐</span>
+                        <span class="feature-title">Parameters 菜单 - 网络配置</span>
+                    </div>
+                    <div class="feature-subtitle">配置客户端/服务器连接（目前已禁用）</div>
+                    <div class="feature-description">
+                        <strong>Input Parameters：</strong>设置网络模式（client/server）和服务器IP<br>
+                        <strong>Recall：</strong>召回在其他设备上的宠物
+                    </div>
+                    <div class="trigger-info">
+                        <strong>🎯 触发方式：</strong>菜单栏 → Parameters → Input Parameters / Recall
+                    </div>
+                    <div class="trigger-info" style="background: #f8d7da; border-left-color: #dc3545; margin-top: 10px;">
+                        <strong>⚠️ 状态：</strong>网络功能目前已禁用（minimal mode）
+                    </div>
+                    <div class="code-info">
+                        <h4>📁 代码位置</h4>
+                        <div class="code-location">
+                            <span class="file-path">src/menu_bar.py</span>
+                            <span class="line-number">→ open_parameter_dialog()（第337行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/menu_bar.py</span>
+                            <span class="line-number">→ process_parameters()（第374行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/menu_bar.py</span>
+                            <span class="line-number">→ recall_pet()（第383行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/communication.py</span>
+                            <span class="line-number">→ PortalClient 和 PortalServer 类</span>
+                        </div>
+                    </div>
+                    <div class="tags">
+                        <span class="tag manual">手动触发</span>
+                        <span class="tag">网络功能</span>
+                        <span class="tag">已禁用</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 喂食系统 -->
+            <section id="feeding" class="section">
+                <h2>🍖 喂食系统</h2>
+                <div class="section-intro">
+                    <p>从商店购买食物后，可以拖动食物喂给宠物。食物会恢复宠物的生命值和饱食度。</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <span class="feature-icon">🖱️</span>
+                        <span class="feature-title">拖动喂食机制</span>
+                    </div>
+                    <div class="feature-subtitle">将食物拖动到宠物身上完成喂食</div>
+                    <div class="feature-description">
+                        <strong>步骤流程：</strong>
+                        <ol style="margin-top: 10px; margin-left: 20px;">
+                            <li>打开商店（Shop → Open Shop）</li>
+                            <li>点击 Food 标签页中的任意食物（Apple/Fish/Meat）</li>
+                            <li>食物图标会跟随鼠标移动</li>
+                            <li>将食物拖动到宠物身上</li>
+                            <li>碰撞检测通过后，宠物吃掉食物，恢复生命值</li>
+                        </ol>
+                    </div>
+                    <div class="trigger-info">
+                        <strong>🎯 触发方式：</strong>商店购买食物 → 拖动到宠物 → 碰撞检测成功
+                    </div>
+                    <div class="code-info">
+                        <h4>📁 代码位置</h4>
+                        <div class="code-location">
+                            <span class="file-path">src/main_window.py</span>
+                            <span class="line-number">→ start_drag_food() 开始拖动（第230行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/main_window.py</span>
+                            <span class="line-number">→ mouseMoveEvent() 鼠标移动事件（第221行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/main_window.py</span>
+                            <span class="line-number">→ check_food_collision() 碰撞检测（第247行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/pet_health.py</span>
+                            <span class="line-number">→ HealthBar 类（生命值管理）</span>
+                        </div>
+                    </div>
+                    <div class="code-snippet">
+<pre># 喂食碰撞检测（src/main_window.py 第247-260行）
+def check_food_collision(self):
+    """Check if the food overlaps with the pet."""
+    if not self.dragging_food:
+        return
+
+    food_rect = self.food_label.geometry()
+    pet_rect = self.pet_label.geometry()
+
+    if food_rect.intersects(pet_rect):
+        # 食物和宠物碰撞
+        print(f"Pet ate {self.selected_food}!")
+        self.health_bar.feed(self.selected_food)  # 恢复生命值
+        self.food_label.hide()
+        self.dragging_food = False
+        self.selected_food = None</pre>
+                    </div>
+                    <div class="tags">
+                        <span class="tag interaction">用户交互</span>
+                        <span class="tag">拖放操作</span>
+                        <span class="tag">碰撞检测</span>
+                        <span class="tag">生命系统</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 工具栏宠物 -->
+            <section id="toolbar" class="section">
+                <h2>📌 macOS 工具栏宠物</h2>
+                <div class="section-intro">
+                    <p>当使用 "Go Up" 功能时，宠物会移动到 macOS 菜单栏，成为一个会动的状态栏图标。</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <span class="feature-icon">🎭</span>
+                        <span class="feature-title">工具栏宠物行为</span>
+                    </div>
+                    <div class="feature-subtitle">在菜单栏中独立的行为系统</div>
+                    <div class="feature-description">
+                        工具栏宠物有独立的状态机：
+                        <ul style="margin-top: 10px; margin-left: 20px;">
+                            <li><strong>Walking（行走）：</strong>在菜单栏图标内左右走动，遇到边界转向</li>
+                            <li><strong>Sitting（坐下）：</strong>行走10秒后60%概率坐下</li>
+                            <li><strong>Sleeping（睡觉）：</strong>坐下10秒后50%概率睡觉</li>
+                        </ul>
+                    </div>
+                    <div class="state-diagram">
+                        <h4 style="color: #667eea; margin-bottom: 15px;">工具栏宠物状态流转</h4>
+                        <div class="state-flow">
+                            <div class="state-box">Walking (10s)</div>
+                            <span class="arrow">→</span>
+                            <div class="state-box">Sitting (10s)</div>
+                            <span class="arrow">→</span>
+                            <div class="state-box">Sleeping (20s)</div>
+                            <span class="arrow">→</span>
+                            <div class="state-box">Sitting</div>
+                        </div>
+                    </div>
+                    <div class="trigger-info">
+                        <strong>🎯 触发方式：</strong>菜单栏 → Setting → Go Up
+                    </div>
+                    <div class="trigger-info" style="background: #e7f3ff; border-left-color: #0066cc; margin-top: 10px;">
+                        <strong>💡 返回桌面：</strong>右键点击菜单栏宠物图标 → "Return to Desktop"
+                    </div>
+                    <div class="code-info">
+                        <h4>📁 代码位置</h4>
+                        <div class="code-location">
+                            <span class="file-path">src/toolbar_pet.py</span>
+                            <span class="line-number">→ MacOSToolbarIcon 类（第39行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/toolbar_pet.py</span>
+                            <span class="line-number">→ update_() 更新循环（第119行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/toolbar_pet.py</span>
+                            <span class="line-number">→ start_walk()（第87行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/toolbar_pet.py</span>
+                            <span class="line-number">→ start_sit()（第98行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/toolbar_pet.py</span>
+                            <span class="line-number">→ start_sleep()（第108行）</span>
+                        </div>
+                    </div>
+                    <div class="code-snippet">
+<pre># 工具栏状态转换（src/toolbar_pet.py 第142-157行）
+if self.state == "walking":
+    if now - self.state_start_time >= 10:
+        if random.random() <= 0.6:
+            self.start_sit()  # 60%概率坐下
+        else:
+            self.state_start_time = now  # 继续走动
+
+elif self.state == "sitting":
+    if now - self.state_start_time >= 10:
+        if random.random() <= 0.5:
+            self.start_sleep()  # 50%概率睡觉
+        else:
+            self.start_walk()   # 50%概率继续走动
+
+elif self.state == "sleeping":
+    if now - self.state_start_time >= 20:
+        self.start_sit()  # 睡醒后坐下</pre>
+                    </div>
+                    <div class="tags">
+                        <span class="tag auto">自动触发</span>
+                        <span class="tag">macOS特性</span>
+                        <span class="tag">独立状态机</span>
+                        <span class="tag">PyObjC</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 状态机 -->
+            <section id="state-machine" class="section">
+                <h2>🎮 行为状态机</h2>
+                <div class="section-intro">
+                    <p>VCat 使用 <strong>BehaviorManager</strong> 管理宠物的所有行为状态转换。每个状态都有特定的触发概率和转换逻辑。</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <span class="feature-icon">⚙️</span>
+                        <span class="feature-title">状态转换核心逻辑</span>
+                    </div>
+                    <div class="feature-subtitle">BehaviorManager - 统一的行为调度器</div>
+                    <div class="feature-description">
+                        状态机负责：
+                        <ul style="margin-top: 10px; margin-left: 20px;">
+                            <li>注册和管理所有宠物行为</li>
+                            <li>根据概率决定下一个状态</li>
+                            <li>调用具体行为的 perform_action() 方法</li>
+                            <li>处理状态转换的回调</li>
+                        </ul>
+                    </div>
+                    <div class="state-diagram">
+                        <h4 style="color: #667eea; margin-bottom: 15px;">完整状态转换图</h4>
+                        <div style="text-align: left; max-width: 600px; margin: 0 auto;">
+                            <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                                <strong>STARTDEFAULT</strong> → <span style="color: #667eea;">100%</span> → WALKING
+                            </div>
+                            <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                                <strong>WALKING</strong> → <span style="color: #667eea;">95%</span> → SITTING<br>
+                                <strong>WALKING</strong> → <span style="color: #6c757d;">5%</span> → WALKING
+                            </div>
+                            <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                                <strong>SITTING</strong> → <span style="color: #667eea;">20%</span> → CODING<br>
+                                <strong>SITTING</strong> → <span style="color: #667eea;">30%</span> → SLEEPING<br>
+                                <strong>SITTING</strong> → <span style="color: #667eea;">50%</span> → WALKING
+                            </div>
+                            <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                                <strong>CODING</strong> → <span style="color: #667eea;">100%</span> → SITTING
+                            </div>
+                            <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                                <strong>SLEEPING</strong> → <span style="color: #667eea;">100%</span> → SITTING
+                            </div>
+                            <div style="background: white; padding: 15px; border-radius: 8px;">
+                                <strong>PLAYING</strong> → <span style="color: #667eea;">100%</span> → SITTING
+                            </div>
+                        </div>
+                    </div>
+                    <div class="code-info">
+                        <h4>📁 代码位置</h4>
+                        <div class="code-location">
+                            <span class="file-path">src/behavior/manager.py</span>
+                            <span class="line-number">→ BehaviorManager 类（第6行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/behavior/manager.py</span>
+                            <span class="line-number">→ advance_state() 状态转换逻辑（第35行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/behavior/pet_actions.py</span>
+                            <span class="line-number">→ PetActions 枚举（第15行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/behavior/pet_actions.py</span>
+                            <span class="line-number">→ PetBehavior 类（第27行）</span>
+                        </div>
+                    </div>
+                    <div class="code-snippet">
+<pre># 状态枚举定义（src/behavior/pet_actions.py 第15-23行）
+class PetActions(Enum):
+    STARTDEFAULT = "startdefault"
+    WALKING = "walking"
+    SITTING = "sitting"
+    SLEEPING = "sleeping"
+    CODING = "coding"
+    PLAYING = "playing"
+    GOINGTOPORTAL = "goingtoportal"
+    REACHEDPORTAL = "reachedportal"</pre>
+                    </div>
+                    <div class="code-snippet">
+<pre># 状态转换逻辑（src/behavior/manager.py 第35-67行）
+def advance_state(self, behavior, ID=None):
+    current_state = behavior.get_state()
+    
+    if current_state == PetActions.STARTDEFAULT:
+        behavior.set_state(PetActions.WALKING)
+    elif current_state == PetActions.WALKING:
+        if random.random() <= 0.95:
+            behavior.set_state(PetActions.SITTING)
+        else:
+            behavior.set_state(PetActions.WALKING)
+    elif current_state == PetActions.SITTING:
+        if random.random() <= 0.2:
+            behavior.set_state(PetActions.CODING)
+        elif random.random() <= 0.3:
+            behavior.set_state(PetActions.SLEEPING)
+        else:
+            behavior.set_state(PetActions.WALKING)
+    elif current_state == PetActions.PLAYING:
+        behavior.set_state(PetActions.SITTING)
+    elif current_state == PetActions.SLEEPING:
+        behavior.set_state(PetActions.SITTING)
+    elif current_state == PetActions.CODING:
+        behavior.set_state(PetActions.SITTING)
+    
+    # 触发下一个行为
+    QTimer.singleShot(0, lambda: self.perform_action(behavior, ID))</pre>
+                    </div>
+                    <div class="tags">
+                        <span class="tag">核心架构</span>
+                        <span class="tag">状态机</span>
+                        <span class="tag">概率系统</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 网络功能 -->
+            <section id="network" class="section">
+                <h2>🌐 网络功能（已禁用）</h2>
+                <div class="section-intro">
+                    <p>允许宠物在不同设备间"旅行"。目前处于禁用状态（minimal mode）。</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <span class="feature-icon">🚪</span>
+                        <span class="feature-title">传送门系统</span>
+                    </div>
+                    <div class="feature-subtitle">宠物跨设备传送功能</div>
+                    <div class="feature-description">
+                        宠物可以通过网络"传送"到朋友的设备上：
+                        <ul style="margin-top: 10px; margin-left: 20px;">
+                            <li>创建传送门（Portal）</li>
+                            <li>宠物移动到传送门位置</li>
+                            <li>通过网络发送宠物数据</li>
+                            <li>在另一台设备上显示访客宠物</li>
+                            <li>可以召回自己的宠物</li>
+                        </ul>
+                    </div>
+                    <div class="trigger-info" style="background: #f8d7da; border-left-color: #dc3545;">
+                        <strong>⚠️ 状态：</strong>目前已禁用，需要启用 networking 权限
+                    </div>
+                    <div class="code-info">
+                        <h4>📁 代码位置</h4>
+                        <div class="code-location">
+                            <span class="file-path">src/communication.py</span>
+                            <span class="line-number">→ PortalClient 和 PortalServer 类</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/behavior/actions/pet_move_to_portal.py</span>
+                            <span class="line-number">→ 移动到传送门行为</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/main_window.py</span>
+                            <span class="line-number">→ create_portal()（第213行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/main_window.py</span>
+                            <span class="line-number">→ teleport_cat()（第217行）</span>
+                        </div>
+                        <div class="code-location">
+                            <span class="file-path">src/main_window.py</span>
+                            <span class="line-number">→ receive_cat()（第205行）</span>
+                        </div>
+                    </div>
+                    <div class="tags">
+                        <span class="tag">网络功能</span>
+                        <span class="tag">已禁用</span>
+                        <span class="tag">Socket通信</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 核心文件结构 -->
+            <section class="section">
+                <h2>📂 核心文件结构</h2>
+                <div class="code-info" style="margin-top: 20px;">
+                    <div class="code-location">
+                        <span class="file-path">src/main_window.py</span>
+                        <span class="line-number">→ 主窗口、应用入口、喂食系统</span>
+                    </div>
+                    <div class="code-location">
+                        <span class="file-path">src/menu_bar.py</span>
+                        <span class="line-number">→ 菜单栏UI和所有菜单功能</span>
+                    </div>
+                    <div class="code-location">
+                        <span class="file-path">src/behavior/manager.py</span>
+                        <span class="line-number">→ 行为状态机管理器</span>
+                    </div>
+                    <div class="code-location">
+                        <span class="file-path">src/behavior/pet_actions.py</span>
+                        <span class="line-number">→ 宠物行为基类和状态枚举</span>
+                    </div>
+                    <div class="code-location">
+                        <span class="file-path">src/behavior/actions/</span>
+                        <span class="line-number">→ 各种具体行为实现（walk, sit, sleep, code, play等）</span>
+                    </div>
+                    <div class="code-location">
+                        <span class="file-path">src/toolbar_pet.py</span>
+                        <span class="line-number">→ macOS菜单栏宠物</span>
+                    </div>
+                    <div class="code-location">
+                        <span class="file-path">src/ui/pet_widget.py</span>
+                        <span class="line-number">→ 宠物UI组件（QLabel包装器）</span>
+                    </div>
+                    <div class="code-location">
+                        <span class="file-path">src/pet_data_loader.py</span>
+                        <span class="line-number">→ 宠物数据和GIF资源加载</span>
+                    </div>
+                    <div class="code-location">
+                        <span class="file-path">src/pet_health.py</span>
+                        <span class="line-number">→ 生命值和饥饿度系统</span>
+                    </div>
+                    <div class="code-location">
+                        <span class="file-path">src/communication.py</span>
+                        <span class="line-number">→ 网络通信（Portal系统）</span>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <footer>
+            <p><strong>VCat</strong> - 桌面宠物应用</p>
+            <p style="margin-top: 10px; opacity: 0.8;">基于 PyQt5 和 PyObjC 构建 | 支持 macOS</p>
+            <p style="margin-top: 10px; font-size: 0.85em;">
+                文档生成时间：2025-12-30
+            </p>
+        </footer>
+
+        <a href="#" class="back-to-top" title="返回顶部">↑</a>
+    </div>
+
+    <script>
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // 返回顶部按钮显示/隐藏
+        const backToTop = document.querySelector('.back-to-top');
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                backToTop.style.display = 'flex';
+            } else {
+                backToTop.style.display = 'none';
+            }
+        });
+
+        // 初始隐藏返回顶部按钮
+        backToTop.style.display = 'none';
+    </script>
+</body>
+</html>
+
