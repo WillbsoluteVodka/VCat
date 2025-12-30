@@ -122,6 +122,14 @@ class PetApp(QMainWindow):
         self.pet_behavior.pet_kind = new_kind
         self.pet_behavior.pet_color = new_color
         
+        # Save to current_pet.json
+        current_pet_path = os.path.join(os.path.dirname(__file__), "current_pet.json")
+        with open(current_pet_path, 'w') as f:
+            json.dump({
+                "Current_Pet_Kind": new_kind,
+                "Current_Pet_Color": new_color
+            }, f, indent=2)
+        
         # Get current state and reload the GIF for that state
         current_state = self.pet_behavior.get_state()
         if current_state:
