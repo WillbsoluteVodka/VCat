@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QLabel
-from PyQt5.QtGui import QMovie
+from PyQt5.QtGui import QMovie, QCursor
 from PyQt5.QtCore import QPropertyAnimation, QPoint, Qt
 
 
@@ -17,6 +17,8 @@ class PetWidget(QLabel):
         self.setScaledContents(True)
         self._movie = None
         self._animation = None
+        # Enable mouse tracking for hover events
+        self.setMouseTracking(True)
 
     def set_movie(self, path):
         """Set and start a QMovie from path. If path is None, does nothing."""
@@ -54,3 +56,23 @@ class PetWidget(QLabel):
         base_width = max(40, int(min(width, height) * ratio))
         base_height = int(base_width * 2 / 3)  # Height is 2/3 of width
         self.resize(base_width, base_height)
+
+    def enterEvent(self, event):
+        """When mouse enters the pet widget, change cursor to pointing hand."""
+        print("DEBUG: 鼠标进入小猫区域！")
+        print(f"DEBUG: 小猫位置: {self.pos()}, 大小: {self.size()}")
+        self.setCursor(QCursor(Qt.PointingHandCursor))
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        """When mouse leaves the pet widget, restore default cursor."""
+        print("DEBUG: 鼠标离开小猫区域！")
+        self.setCursor(QCursor(Qt.ArrowCursor))
+        super().leaveEvent(event)
+
+    def mousePressEvent(self, event):
+        """When pet is clicked, log the event."""
+        print("DEBUG: 检测到鼠标按下事件！")
+        if event.button() == Qt.LeftButton:
+            print("小猫被点击了！")
+        super().mousePressEvent(event)

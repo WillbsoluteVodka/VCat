@@ -49,7 +49,8 @@ class PetApp(QMainWindow):
 
         self.pet_kind, self.pet_color = get_current_pet()
         self.pet_behavior, self.pet_label = self.add_pet("Cat1", self.pet_kind, self.pet_color)
-        self.pet_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        # Allow mouse events on the pet label so it can be clicked
+        # self.pet_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         self.toolbar_icon = None
 
         # Health and hunger mechanics
@@ -64,12 +65,14 @@ class PetApp(QMainWindow):
         self.selected_food = None  # Currently selected food
 
         # Set up window
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowTransparentForInput)
+        # Removed Qt.WindowTransparentForInput to allow mouse events on pet
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
         screen_geometry = QApplication.primaryScreen().availableGeometry()
         screen_width = screen_geometry.width()
         screen_height = screen_geometry.height()
         self.resize(screen_width - 100, screen_height - 100)
+        print("DEBUG: 主窗口已设置，移除了 WindowTransparentForInput 标志")
 
     def activate_toolbar_pet(self):
         """Create the moving pet icon in the toolbar and hide the desktop pet."""
