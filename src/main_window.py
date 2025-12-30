@@ -45,7 +45,7 @@ class PetApp(QMainWindow):
         self.pet_movie = None
         
         # Pet size ratio - must be set BEFORE add_pet is called
-        self.pet_size_ratio = 0.12
+        self.pet_size_ratio = 0.3
 
         self.pet_kind, self.pet_color = get_current_pet()
         self.pet_behavior, self.pet_label = self.add_pet("Cat1", self.pet_kind, self.pet_color)
