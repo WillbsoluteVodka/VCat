@@ -6,8 +6,152 @@
 
 import os
 import argparse
-import time
-from supabase import create_client
+import asyncio
+from datetime import datetime
+from supabase import create_client, acreate_client
+
+
+async def watch_room_async(url: str, key: str, room_id: int, user_num: int):
+    """异步监控房间"""
+    # 先用同步客户端检查用户状态
+    supabase_sync = create_client(url, key)
+    user_in_room = supabase_sync.table("pet_rooms").select("*").eq("room_id", room_id).eq("user_num", user_num).execute()
+    
+    if not user_in_room.data:
+        print(f"❌ 用户 {user_num} 不在房间 {room_id} 中")
+        return
+    
+    is_holder = user_in_room.data[0]["room_holder"]
+    
+    print(f"👀 开始监控房间 {room_id}...")
+    print(f"{'👑 你是房主' if is_holder else '👤 你是普通成员'}")
+    if is_holder:
+        print("输入 'leave' 并回车可退出房间")
+    print("按 Ctrl+C 停止监控\n")
+    
+    # 创建异步客户端
+    supabase = await acreate_client(url, key)
+    
+    should_exit = False
+    
+    async def display_room_members():
+        """显示房间成员列表"""
+        room_members = await supabase.table("pet_rooms").select("*").eq("room_id", room_id).execute()
+        
+        if not room_members.data:
+            return False
+        
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"[{timestamp}]")
+        for member_row in room_members.data:
+            user_num_m = member_row["user_num"]
+            user_info = await supabase.table("user_cur_pet").select("*").eq("user_num", user_num_m).execute()
+            if user_info.data:
+                pet = user_info.data[0]
+                marker = "👑" if member_row["room_holder"] else "👤"
+                print(f"  {marker} User {user_num_m}: {pet['pet_kind']} - {pet['pet_color']}")
+        print()
+        return True
+    
+    async def check_owner_input():
+        """异步检查房主输入"""
+        nonlocal should_exit
+        loop = asyncio.get_event_loop()
+        while not should_exit:
+            try:
+                user_input = await loop.run_in_executor(None, input)
+                if user_input.strip().lower() == 'leave':
+                    should_exit = True
+                    break
+            except:
+                break
+    
+    if is_holder:
+        # 房主：使用 Realtime 监听数据库变化
+        # 先显示初始成员列表
+        if not await display_room_members():
+            print(f"❌ 房间 {room_id} 已不存在")
+            return
+        
+        # 创建 channel 并订阅变化
+        channel = supabase.channel(f'room_{room_id}')
+        
+        async def handle_changes(payload):
+            # print(f"🔍 DEBUG: 收到完整事件 {payload}")
+            
+            if should_exit:
+                return
+            
+            # 正确解析 Supabase Realtime payload 结构
+            data = payload.get('data', {})
+            event_type = data.get('type')
+            new_record = data.get('record', {})
+            old_record = data.get('old_record', {})  # DELETE 时可能有
+            
+            # print(f"🔍 解析后: event_type={event_type}, new_record={new_record}, old_record={old_record}")
+            
+            # 只处理当前房间的变化
+            changed_room_id = new_record.get('room_id') or old_record.get('room_id')
+            # print(f"🔍 房间ID={changed_room_id}, 目标房间={room_id}")
+            
+            if changed_room_id == room_id:
+                if event_type == 'INSERT':
+                    print(f"🔔 新成员加入!")
+                elif event_type == 'DELETE':
+                    print(f"🔔 成员离开!")
+                
+                # 重新显示成员列表
+                if not await display_room_members():
+                    print(f"❌ 房间 {room_id} 已不存在")
+                    print(f"❌ 房间 {room_id} 已不存在")
+        
+        channel.on_postgres_changes(
+            event='*',
+            schema='public',
+            table='pet_rooms',
+            callback=lambda payload: asyncio.create_task(handle_changes(payload))
+        )
+        
+        print(f"🔍 正在订阅...")
+        await channel.subscribe()
+        print(f"✅ 订阅成功，等待变化...")
+        
+        # 启动输入监听任务
+        input_task = asyncio.create_task(check_owner_input())
+        
+        try:
+            # 等待退出信号
+            while not should_exit:
+                await asyncio.sleep(0.5)
+            
+            # 退出时删除房间
+            print(f"\n🏠 房主退出，删除房间 {room_id}...")
+            await supabase.table("pet_rooms").delete().eq("room_id", room_id).execute()
+            print(f"✅ 房间 {room_id} 已删除")
+            
+        except KeyboardInterrupt:
+            print("\n\n⏹️  停止监控")
+            print("提示: 房间仍然存在，使用 'leave' 命令删除房间")
+        finally:
+            await channel.unsubscribe()
+    
+    else:
+        # 普通成员：每3秒检查是否还在房间内
+        try:
+            while True:
+                check_status = await supabase.table("pet_rooms").select("*").eq("room_id", room_id).eq("user_num", user_num).execute()
+                
+                if not check_status.data:
+                    print(f"❌ 房主已结束房间 {room_id}")
+                    break
+                else:
+                    print(f"✅ 仍在房间 {room_id} 中")
+                
+                print()
+                await asyncio.sleep(3)
+                
+        except KeyboardInterrupt:
+            print("\n\n⏹️  停止监控")
 
 
 def main():
@@ -97,52 +241,8 @@ def main():
             print("❌ 监控房间需要 --user 和 --room 参数")
             return
         
-        # 检查用户是否在房间内
-        user_in_room = supabase.table("pet_rooms").select("*").eq("room_id", args.room).eq("user_num", args.user).execute()
-        
-        if not user_in_room.data:
-            print(f"❌ 用户 {args.user} 不在房间 {args.room} 中")
-            return
-        
-        is_holder = user_in_room.data[0]["room_holder"]
-        
-        print(f"👀 开始监控房间 {args.room}...")
-        print(f"{'👑 你是房主' if is_holder else '👤 你是普通成员'}")
-        print("按 Ctrl+C 停止监控\n")
-        
-        try:
-            while True:
-                if is_holder:
-                    # 房主：显示所有成员列表
-                    room_members = supabase.table("pet_rooms").select("*").eq("room_id", args.room).execute()
-                    
-                    if not room_members.data:
-                        print(f"❌ 房间 {args.room} 已不存在")
-                        break
-                    
-                    print(f"📋 房间 {args.room} 成员列表 (共 {len(room_members.data)} 人):")
-                    for member_row in room_members.data:
-                        user_num = member_row["user_num"]
-                        user_info = supabase.table("user_cur_pet").select("*").eq("user_num", user_num).execute()
-                        if user_info.data:
-                            pet = user_info.data[0]
-                            marker = "👑" if member_row["room_holder"] else "👤"
-                            print(f"  {marker} User {user_num}: {pet['pet_kind']} - {pet['pet_color']}")
-                else:
-                    # 普通成员：检查自己是否还在房间内
-                    check_status = supabase.table("pet_rooms").select("*").eq("room_id", args.room).eq("user_num", args.user).execute()
-                    
-                    if not check_status.data:
-                        print(f"❌ 房主已结束房间 {args.room}")
-                        break
-                    else:
-                        print(f"✅ 仍在房间 {args.room} 中")
-                
-                print()  # 空行分隔
-                time.sleep(3)
-                
-        except KeyboardInterrupt:
-            print("\n\n⏹️  停止监控")
+        # 使用 asyncio 运行 watch
+        asyncio.run(watch_room_async(url, key, args.room, args.user))
     
     elif args.action == "join":
         if not args.user or not args.room:
