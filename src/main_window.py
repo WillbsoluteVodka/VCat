@@ -52,6 +52,12 @@ class PetApp(QMainWindow):
         self.pet_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         self.toolbar_icon = None
 
+        # Room connection management
+        self.room_thread = None
+        self.room_stop_event = None
+        self.current_room_id = None
+        self.is_room_holder = False
+
         # Health and hunger mechanics
         self.health_bar = HealthBar(self)
 
@@ -266,6 +272,86 @@ class PetApp(QMainWindow):
             self.food_label.hide()
             self.dragging_food = False
             self.selected_food = None
+    
+    def connect_to_room(self, room_id: int, user_id: int):
+        """Connect to a room (called from menu)"""
+        # Stop existing connection if any
+        if self.room_thread and self.room_thread.is_alive():
+            print("Stopping existing room connection...")
+            self.room_stop_event.set()
+            self.room_thread.join(timeout=3)
+        
+        # Get credentials
+        supabase_url = os.environ.get('SUPABASE_URL', 'https://qamgefqejxydheqabdxo.supabase.co')
+        supabase_key = os.environ.get('SUPABASE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhbWdlZnFlanh5ZGhlcWFiZHhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0NTE5NjAsImV4cCI6MjA4MjAyNzk2MH0.g2t5nlqUuOzu0z3adJFkvqNLwztljL3d3fE6SHOtx7I')
+        
+        # Create stop event
+        self.room_stop_event = threading.Event()
+        
+        # Import connection module
+        from connection import start_room_connection
+        
+        # Define callback for room events
+        def on_room_event(event_type, data):
+            """Handle room events"""
+            if event_type == 'connected':
+                self.current_room_id = data['room_id']
+                self.is_room_holder = data['is_holder']
+                role = "房主" if data['is_holder'] else "成员"
+                print(f"✅ 已连接到房间 {data['room_id']} (身份: {role})")
+            
+            elif event_type == 'members_list':
+                members = data['members']
+                print(f"\n📋 房间成员 (共 {len(members)} 人):")
+                for member in members:
+                    marker = "👑" if member['is_holder'] else "👤"
+                    print(f"  {marker} User {member['user_id']}: {member['pet_kind']} - {member['pet_color']}")
+            
+            elif event_type == 'member_joined':
+                print(f"🔔 新成员加入: User {data['user_id']}")
+            
+            elif event_type == 'member_left':
+                print(f"🔔 成员离开: User {data['user_id']}")
+            
+            elif event_type == 'room_closed':
+                print(f"🚪 房间已关闭: {data.get('message', '未知原因')}")
+                self.current_room_id = None
+                self.is_room_holder = False
+            
+            elif event_type == 'error':
+                print(f"❌ 错误: {data['message']}")
+        
+        # Start connection in background thread
+        self.room_thread = threading.Thread(
+            target=start_room_connection,
+            args=(supabase_url, supabase_key, room_id, user_id, on_room_event, self.room_stop_event),
+            daemon=True
+        )
+        self.room_thread.start()
+        print(f"🚀 正在连接到房间 {room_id}...")
+    
+    def disconnect_from_room(self):
+        """Disconnect from current room"""
+        if self.room_thread and self.room_thread.is_alive():
+            print("正在断开房间连接...")
+            self.room_stop_event.set()
+            self.room_thread.join(timeout=3)
+            self.current_room_id = None
+            self.is_room_holder = False
+            print("✅ 已断开连接")
+        else:
+            print("当前未连接到任何房间")
+    
+    def closeEvent(self, event):
+        """Handle application shutdown"""
+        # Disconnect from room if connected
+        if self.room_thread and self.room_thread.is_alive():
+            print("清理房间连接...")
+            self.room_stop_event.set()
+            self.room_thread.join(timeout=3)
+        
+        # Call parent close handler
+        super().closeEvent(event)
 
 
 if __name__ == '__main__':

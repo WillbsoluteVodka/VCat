@@ -55,11 +55,11 @@ def run(self, parent, callback):
         # print(f"[pet_sit.monitor_cursor] cursor_pos={cursor_pos} label_rect={label_global_rect} contains={contains}")
         if contains:
             if not cursor_timer.isActive():
-                print(f"[pet_sit.monitor_cursor] starting cursor_timer={id(cursor_timer)}")
+                # print(f"[pet_sit.monitor_cursor] starting cursor_timer={id(cursor_timer)}")
                 cursor_timer.start(3000)
         else:
             if cursor_timer.isActive():
-                print(f"[pet_sit.monitor_cursor] stopping cursor_timer={id(cursor_timer)}")
+                # print(f"[pet_sit.monitor_cursor] stopping cursor_timer={id(cursor_timer)}")
                 cursor_timer.stop()
 
     def on_timer_finished():

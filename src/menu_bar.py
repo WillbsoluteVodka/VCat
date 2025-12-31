@@ -164,9 +164,15 @@ class MainMenuWindow(QMainWindow):
     
     # 测试测试测试测试测试
     def handle_test_room(self, room_num, user_id):
-        """Dummy callback for handling test room input."""
+        """Start room connection when user submits the dialog"""
         print(f"Test Room - Room Number: {room_num}, User ID: {user_id}")
-        # TODO: Implement actual room connection logic here
+        
+        # Call the main app's connect_to_room method
+        try:
+            self.parent_app.connect_to_room(int(room_num), int(user_id))
+        except Exception as e:
+            QMessageBox.critical(self, "Connection Error", f"Failed to connect: {str(e)}")
+            print(f"❌ Connection error: {e}")
 
     def open_parameter_dialog(self):
         """Open a dialog to take two parameters."""

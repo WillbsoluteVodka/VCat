@@ -66,7 +66,7 @@ class PetBehavior(QObject):
 
     def perform_action(self, parent, callback,ID=None):
         """Perform an action based on the current state."""
-        print(f"[PetBehavior.perform_action] called for behavior={id(self)} current_state={self.current_state} ID={ID}")
+        print(f"{self.current_state} ID={ID}")
         if self.current_state == PetActions.STARTDEFAULT:
             self.pet_startdefault(parent, callback)
         elif self.current_state == PetActions.WALKING:
@@ -82,7 +82,7 @@ class PetBehavior(QObject):
         elif self.current_state == PetActions.GOINGTOPORTAL:
             self.pet_move_to_portal(parent, callback)
         elif self.current_state == PetActions.REACHEDPORTAL:
-            print("im here")
+            # print("im here")
             if ID=="server":
                 parent.teleport_cat("server", self.pet_label)
             else:

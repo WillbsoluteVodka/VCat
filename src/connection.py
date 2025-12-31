@@ -389,3 +389,191 @@ def main():
 if __name__ == "__main__":
     main()
 
+
+# ============= API for GUI Integration =============
+
+async def watch_room_with_callback(url: str, key: str, room_id: int, user_num: int, callback, stop_event):
+    """
+    异步监控房间，通过callback发送事件到GUI
+    callback(event_type, data) where:
+        - event_type: 'connected', 'member_joined', 'member_left', 'room_closed', 'error', 'members_list'
+        - data: dict with relevant information
+    stop_event: threading.Event to signal when to stop
+    """
+    try:
+        # 先用同步客户端检查用户状态和加入房间
+        supabase_sync = create_client(url, key)
+        
+        # 检查用户是否存在
+        user_result = supabase_sync.table("user_cur_pet").select("*").eq("user_num", user_num).execute()
+        if not user_result.data:
+            callback('error', {'message': f'用户 {user_num} 不存在'})
+            return
+        
+        # 检查房间是否存在
+        room_check = supabase_sync.table("pet_rooms").select("*").eq("room_id", room_id).execute()
+        
+        is_holder = False
+        if not room_check.data:
+            # 房间不存在，创建新房间
+            supabase_sync.table("pet_rooms").insert({
+                "room_id": room_id,
+                "user_num": user_num,
+                "room_holder": True
+            }).execute()
+            is_holder = True
+            callback('connected', {'room_id': room_id, 'user_id': user_num, 'is_holder': True})
+        else:
+            # 房间已存在，检查用户是否已在房间内
+            existing_members = [row["user_num"] for row in room_check.data]
+            if user_num in existing_members:
+                # 已在房间内，直接监控
+                user_in_room = [row for row in room_check.data if row["user_num"] == user_num][0]
+                is_holder = user_in_room["room_holder"]
+            else:
+                # 加入房间
+                supabase_sync.table("pet_rooms").insert({
+                    "room_id": room_id,
+                    "user_num": user_num,
+                    "room_holder": False
+                }).execute()
+                is_holder = False
+            callback('connected', {'room_id': room_id, 'user_id': user_num, 'is_holder': is_holder})
+        
+        # 创建异步客户端
+        supabase = await acreate_client(url, key)
+        
+        async def get_room_members():
+            """获取房间成员列表"""
+            room_members = await supabase.table("pet_rooms").select("*").eq("room_id", room_id).execute()
+            if not room_members.data:
+                return None
+            
+            members = []
+            for member_row in room_members.data:
+                user_num_m = member_row["user_num"]
+                user_info = await supabase.table("user_cur_pet").select("*").eq("user_num", user_num_m).execute()
+                if user_info.data:
+                    pet = user_info.data[0]
+                    members.append({
+                        'user_id': user_num_m,
+                        'pet_kind': pet['pet_kind'],
+                        'pet_color': pet['pet_color'],
+                        'is_holder': member_row['room_holder']
+                    })
+            return members
+        
+        # 发送初始成员列表
+        members = await get_room_members()
+        if members is None:
+            callback('error', {'message': f'房间 {room_id} 已不存在'})
+            return
+        callback('members_list', {'members': members})
+        
+        if is_holder:
+            # 房主：监听所有变化
+            channel = supabase.channel(f'room_{room_id}')
+            
+            async def handle_changes(payload):
+                if stop_event.is_set():
+                    return
+                
+                data = payload.get('data', {})
+                event_type = data.get('type')
+                new_record = data.get('record', {})
+                old_record = data.get('old_record', {})
+                
+                changed_room_id = new_record.get('room_id') or old_record.get('room_id')
+                
+                if changed_room_id == room_id:
+                    if event_type == 'INSERT':
+                        callback('member_joined', {'user_id': new_record.get('user_num')})
+                    elif event_type == 'DELETE':
+                        callback('member_left', {'user_id': old_record.get('user_num')})
+                    
+                    # 更新成员列表
+                    members = await get_room_members()
+                    if members is None:
+                        callback('room_closed', {})
+                    else:
+                        callback('members_list', {'members': members})
+            
+            channel.on_postgres_changes(
+                event='*',
+                schema='public',
+                table='pet_rooms',
+                callback=lambda payload: asyncio.create_task(handle_changes(payload))
+            )
+            
+            await channel.subscribe()
+            
+            try:
+                # 等待停止信号
+                while not stop_event.is_set():
+                    await asyncio.sleep(0.5)
+                
+                # 房主退出，删除房间
+                await supabase.table("pet_rooms").delete().eq("room_id", room_id).execute()
+                callback('room_closed', {'message': '房主退出，房间已删除'})
+                
+            finally:
+                await channel.unsubscribe()
+        
+        else:
+            # 普通成员：只监听房间删除
+            channel = supabase.channel(f'member_room_{room_id}_{user_num}')
+            
+            room_exists = True
+            
+            async def handle_member_changes(payload):
+                nonlocal room_exists
+                
+                if not room_exists or stop_event.is_set():
+                    return
+                
+                data = payload.get('data', {})
+                event_type = data.get('type')
+                old_record = data.get('old_record', {})
+                new_record = data.get('record', {})
+                
+                changed_room_id = old_record.get('room_id') or new_record.get('room_id')
+                deleted_user_num = old_record.get('user_num')
+                
+                if changed_room_id == room_id and event_type == 'DELETE':
+                    if deleted_user_num == user_num:
+                        callback('room_closed', {'message': '房主已关闭房间'})
+                        room_exists = False
+            
+            channel.on_postgres_changes(
+                event='DELETE',
+                schema='public',
+                table='pet_rooms',
+                callback=lambda payload: asyncio.create_task(handle_member_changes(payload))
+            )
+            
+            await channel.subscribe()
+            
+            try:
+                while room_exists and not stop_event.is_set():
+                    await asyncio.sleep(0.5)
+            finally:
+                await channel.unsubscribe()
+    
+    except Exception as e:
+        callback('error', {'message': str(e)})
+
+
+def start_room_connection(url: str, key: str, room_id: int, user_id: int, callback, stop_event):
+    """
+    在新的事件循环中启动房间连接（在单独的线程中调用）
+    callback: 接收事件的回调函数 callback(event_type, data)
+    stop_event: threading.Event 用于停止连接
+    """
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(
+            watch_room_with_callback(url, key, room_id, user_id, callback, stop_event)
+        )
+    finally:
+        loop.close()

@@ -37,7 +37,7 @@ def load_pet_data(pet_kind, pet_color, action):
             if pet_color in kind_data:
                 color_data = kind_data[pet_color]
                 if action in color_data:
-                    print("src/"+color_data[action])
+                    # print("src/"+color_data[action])
                     return "src/"+color_data[action]
                 else:
                     print(f"Action '{action}' not found for pet '{pet_kind}' of color '{pet_color}'.")
