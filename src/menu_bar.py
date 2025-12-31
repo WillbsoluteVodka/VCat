@@ -18,222 +18,6 @@ class MainMenuWindow:
 
     def exec_(self):
         return
-# from PyQt5.QtGui import QMovie, QPixmap
-# from PyQt5.QtWidgets import (
-#     QApplication, QMainWindow, QAction, QMenu, QDialog, QVBoxLayout, QLineEdit, QLabel, QPushButton, QMessageBox,
-#     QComboBox, QScrollArea, QWidget, QHBoxLayout
-# )
-# from PyQt5.QtCore import Qt, QSize
-#
-# from pet_data_loader import get_all_pet_kinds_and_colors, load_pet_data
-#
-#
-# class MainMenuWindow(QMainWindow):
-#     """Window to hold the native menu bar."""
-#     def __init__(self, parent_app):
-#         super().__init__()
-#         self.setWindowTitle("Menu Window")
-#         self.parent_app = parent_app
-#
-#         # Create the menu bar items
-#         menubar = self.menuBar()
-#
-#         # Feed Menu
-#         feed_menu = menubar.addMenu("Feed")
-#
-#         # Submenu for selecting food
-#         food_menu = QMenu("Choose Food", self)
-#         apple_action = QAction("Apple", self)
-#         apple_action.triggered.connect(lambda: self.select_food("Apple"))
-#         food_menu.addAction(apple_action)
-#
-#         fish_action = QAction("Fish", self)
-#         fish_action.triggered.connect(lambda: self.select_food("Fish"))
-#         food_menu.addAction(fish_action)
-#
-#         meat_action = QAction("Meat", self)
-#         meat_action.triggered.connect(lambda: self.select_food("Meat"))
-#         food_menu.addAction(meat_action)
-#
-#         # Add the food submenu to the feed menu
-#         feed_menu.addMenu(food_menu)
-#
-#         # New Menu Bar Item for Parameters
-#         self.parameter_menu = menubar.addMenu("Parameters")
-#
-#         # Submenu for taking parameters
-#         parameter_action = QAction("Input Parameters", self)
-#         parameter_action.triggered.connect(self.open_parameter_dialog)
-#         self.parameter_menu.addAction(parameter_action)
-#
-#         # Recall submenu (hidden initially)
-#         self.recall_action = QAction("Recall", self)
-#         self.recall_action.triggered.connect(self.recall_pet)
-#         self.recall_action.setEnabled(False)  # Disable until parameters are set
-#         self.parameter_menu.addAction(self.recall_action)
-#
-#         # New Menu Bar Item for Pet Setting
-#         pet_setting_menu = menubar.addMenu("Pet Setting")  # Create a new menu for Pet Settings
-#         pet_setting_action = QAction("Change Pet", self)
-#         pet_setting_action.triggered.connect(self.open_pet_setting_dialog)
-#         pet_setting_menu.addAction(pet_setting_action)
-#
-#
-#
-#     def select_food(self, food_name):
-#         """Handle food selection."""
-#         print(f"You selected {food_name}!")
-#         self.parent_app.start_drag_food(food_name)  # Trigger dragging in the main app
-#
-#     def open_parameter_dialog(self):
-#         """Open a dialog to take two parameters."""
-#         dialog = QDialog(self)
-#         dialog.setWindowTitle("Input Parameters")
-#
-#         layout = QVBoxLayout(dialog)
-#
-#         # First parameter input
-#         label1 = QLabel("Client or server:", dialog)
-#         layout.addWidget(label1)
-#         param1_input = QLineEdit(dialog)
-#         layout.addWidget(param1_input)
-#
-#         # Second parameter input
-#         label2 = QLabel("If client, server IP:", dialog)
-#         layout.addWidget(label2)
-#         param2_input = QLineEdit(dialog)
-#         layout.addWidget(param2_input)
-#
-#         # OK button
-#         ok_button = QPushButton("OK", dialog)
-#         layout.addWidget(ok_button)
-#
-#         # Handle the OK button click
-#         def on_ok():
-#             param1 = param1_input.text()
-#             param2 = param2_input.text()
-#             if param1 and param2:
-#                 dialog.accept()
-#                 self.process_parameters(param1, param2)
-#             else:
-#                 QMessageBox.warning(self, "Invalid Input", "Both parameters are required.")
-#
-#         ok_button.clicked.connect(on_ok)
-#
-#         dialog.exec_()
-#
-#     def process_parameters(self, param1, param2):
-#         """Process the two parameters."""
-#         print(f"Parameter 1: {param1}, Parameter 2: {param2}")
-#         self.parent_app.handle_parameters(param1, param2)
-#
-#         # Enable the Recall submenu after parameters are set
-#         if param1 =="client":
-#             self.recall_action.setEnabled(True)
-#
-#     def recall_pet(self):
-#         """Handle the Recall menu action."""
-#         print("Recall menu action triggered.")
-#         self.parent_app.recall_pet()
-#
-#     def open_pet_setting_dialog(self):
-#         """Open the Pet Setting dialog."""
-#         dialog = PetSettingDialog(self.parent_app)
-#         dialog.exec_()
-#
-#
-#
-#
-# class PetSettingDialog(QDialog):
-#     """Dialog for selecting pet kind and color."""
-#     def __init__(self, parent_app):
-#         super().__init__()
-#         self.setWindowTitle("Pet Settings")
-#         self.parent_app = parent_app
-#         self.active_movies = []  # Track all active QMovie objects
-#
-#         # Dialog layout
-#         layout = QVBoxLayout(self)
-#
-#         # Scrollable area for buttons
-#         scroll_area = QScrollArea(self)
-#         scroll_area.setWidgetResizable(True)
-#         scroll_content = QWidget()
-#         scroll_layout = QVBoxLayout(scroll_content)
-#
-#         # Retrieve all pet kinds and colors
-#         pet_kinds_and_colors = get_all_pet_kinds_and_colors()
-#
-#         screen_width = self.parent_app.width()  # Use the parent app's width as screen width reference
-#         button_width = int(screen_width * 0.1)  # Set button width to 10% of screen width
-#
-#         # Dynamically create buttons for each pair of pet kind and color
-#         for pet_kind, colors in pet_kinds_and_colors.items():
-#             kind_label = QLabel(f"Pet Kind: {pet_kind}", self)
-#             kind_label.setAlignment(Qt.AlignCenter)
-#             scroll_layout.addWidget(kind_label)
-#
-#             button_layout = QHBoxLayout()
-#             for color in colors:
-#                 # Load the image for this pet kind and color
-#                 gif_path = load_pet_data(pet_kind, color, "demo")
-#
-#                 # Create a QPushButton
-#                 button = QPushButton(self)
-#                 button.setFixedSize(button_width, button_width)  # Set dynamic size
-#                 button.setStyleSheet("""
-#                                     border: none;
-#                                     background-color: green;
-#                                 """)
-#                 button_layout.addWidget(button)
-#
-#                 # Add a QLabel to display the image inside the button
-#                 gif_label = QLabel(button)
-#                 gif_label.setFixedSize(button_width, button_width)  # Same size as button
-#                 gif_label.setAlignment(Qt.AlignCenter)
-#
-#                 # Load and play the GIF
-#                 movie = QMovie(gif_path)
-#                 movie.setScaledSize(QSize(button_width, button_width))  # Resize the GIF to match the button size
-#                 gif_label.setMovie(movie)
-#                 movie.start()  # Start the GIF playback
-#
-#                 # Keep track of the active movies for cleanup later
-#                 self.active_movies.append(movie)
-#
-#                 # Connect the button to save_settings
-#                 button.clicked.connect(
-#                     lambda _, k=pet_kind, c=color: self.save_settings(k, c)
-#                 )
-#
-#             scroll_layout.addLayout(button_layout)
-#
-#         scroll_area.setWidget(scroll_content)
-#         layout.addWidget(scroll_area)
-#
-#         # Close button
-#         close_button = QPushButton("Close", self)
-#         close_button.clicked.connect(self.handle_close)
-#         layout.addWidget(close_button)
-#
-#     def handle_close(self):
-#         """Ensure the dialog is properly closed."""
-#         self.close()
-#
-#     def closeEvent(self, event):
-#         """Stop all active movies when the dialog is closed."""
-#         for movie in self.active_movies:
-#             movie.stop()
-#         self.active_movies.clear()
-#         super().closeEvent(event)
-#
-#     def save_settings(self, kind, color):
-#         """Save the selected settings and update the pet."""
-#         self.parent_app.update_pet(kind, color)
-#         self.accept()
-#         self.close()
-
-
 
 from PyQt5.QtGui import QMovie, QPixmap
 from PyQt5.QtWidgets import (
@@ -311,6 +95,13 @@ class MainMenuWindow(QMainWindow):
         self.recall_action.setEnabled(False)  # Disable until parameters are set
         self.parameter_menu.addAction(self.recall_action)
 
+    # 测试测试测试测试测试
+        # Test Menu
+        test_menu = menubar.addMenu("Test")
+        test_action = QAction("Test Room", self)
+        test_action.triggered.connect(self.open_test_dialog)
+        test_menu.addAction(test_action)
+
     def activate_toolbar_pet(self):
         """Activate the pet to move in the macOS toolbar."""
         print("Activating pet in the toolbar...")
@@ -333,6 +124,49 @@ class MainMenuWindow(QMainWindow):
         """Open the shop window with product categories."""
         dialog = ShopWindow(self.parent_app)
         dialog.exec_()
+    
+    # 测试测试测试测试测试
+    def open_test_dialog(self):
+        """Open a dialog to input Room Number and User ID for testing."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Test Room")
+
+        layout = QVBoxLayout(dialog)
+
+        # Room Number input
+        room_label = QLabel("Room Number:", dialog)
+        layout.addWidget(room_label)
+        room_input = QLineEdit(dialog)
+        layout.addWidget(room_input)
+
+        # User ID input
+        user_label = QLabel("User ID:", dialog)
+        layout.addWidget(user_label)
+        user_input = QLineEdit(dialog)
+        layout.addWidget(user_input)
+
+        # OK button
+        ok_button = QPushButton("OK", dialog)
+        layout.addWidget(ok_button)
+
+        # Handle the OK button click
+        def on_ok():
+            room_num = room_input.text()
+            user_id = user_input.text()
+            if room_num and user_id:
+                dialog.accept()
+                self.handle_test_room(room_num, user_id)
+            else:
+                QMessageBox.warning(dialog, "Invalid Input", "Both Room Number and User ID are required.")
+
+        ok_button.clicked.connect(on_ok)
+        dialog.exec_()
+    
+    # 测试测试测试测试测试
+    def handle_test_room(self, room_num, user_id):
+        """Dummy callback for handling test room input."""
+        print(f"Test Room - Room Number: {room_num}, User ID: {user_id}")
+        # TODO: Implement actual room connection logic here
 
     def open_parameter_dialog(self):
         """Open a dialog to take two parameters."""
