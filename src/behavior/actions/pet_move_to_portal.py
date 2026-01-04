@@ -1,5 +1,6 @@
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtGui import QMovie
+from PyQt5.QtWidgets import QLabel, QApplication
 from pet_data_loader import load_pet_data
 
 
@@ -16,6 +17,28 @@ def run(self, parent, callback):
             pass
 
     self.resize_pet_label(parent)
+    
+    # Create portal at screen center
+    screen = QApplication.primaryScreen().availableGeometry()
+    portal_center_x = screen.width() // 2
+    portal_center_y = screen.height() // 2
+    
+    # Create portal label with animated GIF
+    portal = QLabel(parent)
+    portal.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+    portal.setAttribute(Qt.WA_TranslucentBackground)
+    
+    portal_movie = QMovie(self.resource_path("src/icon/portal.gif"))
+    portal.setMovie(portal_movie)
+    portal.setScaledContents(True)
+    
+    # Resize and position portal
+    portal_size = int(screen.width() * 0.1)
+    portal.resize(portal_size, portal_size)
+    portal.move(portal_center_x - portal_size // 2, portal_center_y - portal_size // 2)
+    
+    portal_movie.start()
+    portal.show()
 
     start_movie = QMovie(self.resource_path(load_pet_data(self.pet_kind, self.pet_color, "start_move_portal")))
     self.pet_label.setMovie(start_movie)
@@ -59,6 +82,12 @@ def run(self, parent, callback):
             except Exception:
                 pass
             self.pet_label.hide()
+            
+            # Hide and cleanup portal
+            portal.hide()
+            portal_movie.stop()
+            portal.deleteLater()
+            
             callback()
 
         finish_timer = QTimer(parent)
@@ -66,3 +95,4 @@ def run(self, parent, callback):
         self.active_timers.append(finish_timer)
         finish_timer.timeout.connect(stop_end_movie_and_callback)
         finish_timer.start(1000)
+
