@@ -1,7 +1,81 @@
-# DesktopPet
+# VCat 🐱
 
 ## Description
 This project is a customizable desktop pet application where users can choose a virtual pet that moves randomly across the screen, switches between different poses, and interacts with the OS in fun and engaging ways. Features include feeding, interaction with the environment, and customizable settings for a unique user experience.
+
+---
+
+## 🐾 猫咪行为逻辑 (Cat Behaviors)
+
+| 行为 | 英文 | 描述 |
+|------|------|------|
+| 睡觉 | Sleeping | 猫咪进入休息状态 |
+| 走路 | Walking | 猫咪在桌面上随机移动 |
+| 坐着 | Sitting | 猫咪静坐等待互动 |
+| 玩耍 | Playing | 猫咪与环境或用户互动 |
+| 对话 | Coding | 猫咪打开终端/文本编辑器与用户交流 |
+
+---
+
+## ✨ 功能特性 (Features)
+
+### 1. 传送门 (Portal)
+- **房间系统**: 通过 Room ID + User ID 连接
+- **房主机制**: 第一个创建房间的人成为房间主
+
+### 2. 位置控制
+- **菜单栏模式**: 猫咪可以移动到菜单栏
+- **主屏幕模式**: 通过 Menu Bar 控制猫咪回到桌面
+
+### 3. 购物与喂食
+- 商店出售宠物食物、玩具、魔法物品
+- 宠物食物可以恢复饥饿值
+
+### 4. 外观设置
+- 猫咪大小调整 (Size 变大/变小)
+- 猫咪样式更换 (皮肤切换)
+
+### 5. 网络配置
+- 支持本地网络连接
+- 实现跨设备宠物访问
+
+---
+
+## 📋 TODO 开发计划
+
+### 高优先级
+- [ ] **引导教程** - 新用户入门指引
+- [ ] **拖拽小猫 / 猫窝** - 可拖拽交互 (ld)
+- [ ] **传送门 UI + 测试 Refine** - 优化传送门界面和稳定性
+- [ ] **动作切换时可能出现虚线** - 电脑性能问题？
+
+### 中优先级
+- [ ] **多种小猫样式** - 寻找画师/尝试 AI 生成更多皮肤
+- [ ] **购物+喂食逻辑** - 完善商店系统
+- [ ] **对话功能改进** - Coding 功能改为对话框，而非启动 TextEdit
+  - 可能需要新的 UI 或其他实现方式
+
+### 传送门房间功能扩展
+- [ ] **打架系统** - 血量条 + 小游戏
+- [ ] **贴贴功能** - 增加好感度
+- [ ] 更多互动玩法...
+
+### 🚀 Future Plan
+- [ ] **Agent 功能** - 语音或双击小猫开启 Agent，可控制 Desktop/Chrome 或虚拟环境 Sandbox
+
+---
+
+## 💰 商业模式 (Business Model)
+
+### 免费层 (Free Tier)
+- 基础功能（走动、基本互动）
+
+### 付费层 (Premium Tier)
+- **传送门功能** - 需要数据库支持
+- **官方小猫皮肤** - 需要网站支持登录注册
+- **官方 Agent 功能** - 高级 AI 交互
+
+---
 
 ## Installation
 Follow these steps to install and run the application:
