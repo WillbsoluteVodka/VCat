@@ -556,6 +556,16 @@ async def watch_room_with_callback(url: str, key: str, room_id: int, user_num: i
             try:
                 while room_exists and not stop_event.is_set():
                     await asyncio.sleep(0.5)
+                
+                # 普通成员退出时，删除自己的记录
+                if not stop_event.is_set():
+                    # 如果是因为房间关闭而退出，不需要删除（已被房主删除）
+                    pass
+                else:
+                    # 主动退出，删除自己的记录
+                    await supabase.table("pet_rooms").delete().eq("room_id", room_id).eq("user_num", user_num).execute()
+                    callback('room_closed', {'message': '已退出房间'})
+                    
             finally:
                 await channel.unsubscribe()
     
