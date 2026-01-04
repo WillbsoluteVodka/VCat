@@ -1,5 +1,5 @@
 from PyQt5.QtCore import QTimer, Qt
-from PyQt5.QtGui import QMovie
+from PyQt5.QtGui import QMovie, QPixmap
 from PyQt5.QtWidgets import QLabel, QApplication
 from pet_data_loader import load_pet_data
 
@@ -18,18 +18,19 @@ def run(self, parent, callback):
 
     self.resize_pet_label(parent)
     
-    # Create portal at screen center
+    # Create portal at screen center (as static PNG image)
     screen = QApplication.primaryScreen().availableGeometry()
     portal_center_x = screen.width() // 2
     portal_center_y = screen.height() // 2
     
-    # Create portal label with animated GIF
+    # Create portal label with static PNG
     portal = QLabel(parent)
     portal.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
     portal.setAttribute(Qt.WA_TranslucentBackground)
     
-    portal_movie = QMovie(self.resource_path("src/icon/portal.gif"))
-    portal.setMovie(portal_movie)
+    # Load static portal PNG
+    portal_pixmap = QPixmap(self.resource_path("src/icon/portal.png"))
+    portal.setPixmap(portal_pixmap)
     portal.setScaledContents(True)
     
     # Resize and position portal
@@ -37,7 +38,8 @@ def run(self, parent, callback):
     portal.resize(portal_size, portal_size)
     portal.move(portal_center_x - portal_size // 2, portal_center_y - portal_size // 2)
     
-    portal_movie.start()
+    # Lower portal so pet animations appear on top
+    portal.lower()
     portal.show()
 
     start_movie = QMovie(self.resource_path(load_pet_data(self.pet_kind, self.pet_color, "start_move_portal")))
@@ -85,7 +87,6 @@ def run(self, parent, callback):
             
             # Hide and cleanup portal
             portal.hide()
-            portal_movie.stop()
             portal.deleteLater()
             
             callback()
@@ -95,4 +96,5 @@ def run(self, parent, callback):
         self.active_timers.append(finish_timer)
         finish_timer.timeout.connect(stop_end_movie_and_callback)
         finish_timer.start(1000)
+
 
