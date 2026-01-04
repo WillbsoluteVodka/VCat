@@ -274,6 +274,40 @@ class PetApp(QMainWindow):
             self.dragging_food = False
             self.selected_food = None
     
+    def teleport_pet_to_portal(self):
+        """Teleport pet to portal and freeze actions (for non-holder users)"""
+        # Stop current behavior
+        self.pet_behavior.pause()
+        
+        # Mark pet as teleported
+        self.pet_teleported = True
+        
+        # Execute portal teleportation animation
+        def on_portal_complete():
+            """After portal animation, keep pet hidden and frozen"""
+            self.pet_label.hide()
+            print("✅ 宠物已传送到房主处，行动已冻结")
+        
+        # Use the pet_move_to_portal action
+        self.pet_behavior.pet_move_to_portal(self, on_portal_complete)
+    
+    def recall_pet_from_portal(self):
+        """Recall pet from portal (when leaving room or room closed)"""
+        if not hasattr(self, 'pet_teleported') or not self.pet_teleported:
+            return
+        
+        # Show pet at center of screen
+        screen_geometry = QApplication.primaryScreen().availableGeometry()
+        center_x = (screen_geometry.width() - self.pet_label.width()) // 2
+        center_y = (screen_geometry.height() - self.pet_label.height()) // 2
+        self.pet_label.move(center_x, center_y)
+        self.pet_label.show()
+        
+        # Resume normal behavior
+        self.pet_behavior.resume(self, lambda: self.check_switch_state(self.pet_behavior))
+        self.pet_teleported = False
+        print("✅ 宠物已召回并恢复行动")
+    
     def connect_to_room(self, room_id: int, user_id: int):
         """Connect to a room (called from menu)"""
         # Stop existing connection if any
@@ -300,6 +334,11 @@ class PetApp(QMainWindow):
                 self.is_room_holder = data['is_holder']
                 role = "房主" if data['is_holder'] else "成员"
                 print(f"✅ 已连接到房间 {data['room_id']} (身份: {role})")
+                
+                # If not holder, create portal and teleport pet
+                if not data['is_holder']:
+                    print("🌀 创建传送门并传送宠物...")
+                    self.teleport_pet_to_portal()
             
             elif event_type == 'members_list':
                 members = data['members']
@@ -318,6 +357,11 @@ class PetApp(QMainWindow):
                 print(f"🚪 房间已关闭: {data.get('message', '未知原因')}")
                 self.current_room_id = None
                 self.is_room_holder = False
+                
+                # Recall pet if it was teleported
+                if hasattr(self, 'pet_teleported') and self.pet_teleported:
+                    print("📞 召回宠物...")
+                    self.recall_pet_from_portal()
             
             elif event_type == 'error':
                 print(f"❌ 错误: {data['message']}")
@@ -345,6 +389,12 @@ class PetApp(QMainWindow):
             self.current_room_id = None
             self.is_room_holder = False
             self.room_worker = None  # Clear compatibility flag
+            
+            # Recall pet if it was teleported
+            if hasattr(self, 'pet_teleported') and self.pet_teleported:
+                print("📞 召回宠物...")
+                self.recall_pet_from_portal()
+            
             print("✅ 已断开连接")
         else:
             print("当前未连接到任何房间")
