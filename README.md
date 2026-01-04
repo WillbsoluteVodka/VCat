@@ -46,8 +46,8 @@ This project is a customizable desktop pet application where users can choose a 
 ### 高优先级
 - [ ] **引导教程** - 新用户入门指引
 - [ ] **拖拽小猫 / 猫窝** - 可拖拽交互 (ld)
-- [ ] **菜单栏显示问题** - 修复部分系统看不到菜单栏的 Bug
 - [ ] **传送门 UI + 测试 Refine** - 优化传送门界面和稳定性
+- [ ] **动作切换时可能出现虚线** - 电脑性能问题？
 
 ### 中优先级
 - [ ] **多种小猫样式** - 寻找画师/尝试 AI 生成更多皮肤
