@@ -57,6 +57,7 @@ class PetApp(QMainWindow):
         self.room_stop_event = None
         self.current_room_id = None
         self.is_room_holder = False
+        self.room_worker = None  # For compatibility with menu_bar.py checks
 
         # Health and hunger mechanics
         self.health_bar = HealthBar(self)
@@ -328,7 +329,12 @@ class PetApp(QMainWindow):
             daemon=True
         )
         self.room_thread.start()
+        self.room_worker = self.room_thread  # Set for menu_bar compatibility
         print(f"🚀 正在连接到房间 {room_id}...")
+    
+    def leave_room(self):
+        """Leave current room (wrapper for disconnect_from_room)"""
+        self.disconnect_from_room()
     
     def disconnect_from_room(self):
         """Disconnect from current room"""
@@ -338,6 +344,7 @@ class PetApp(QMainWindow):
             self.room_thread.join(timeout=3)
             self.current_room_id = None
             self.is_room_holder = False
+            self.room_worker = None  # Clear compatibility flag
             print("✅ 已断开连接")
         else:
             print("当前未连接到任何房间")

@@ -101,6 +101,11 @@ class MainMenuWindow(QMainWindow):
         test_action = QAction("Test Room", self)
         test_action.triggered.connect(self.open_test_dialog)
         test_menu.addAction(test_action)
+        
+        # Leave Room action
+        leave_room_action = QAction("Leave Room", self)
+        leave_room_action.triggered.connect(self.leave_room)
+        test_menu.addAction(leave_room_action)
 
     def activate_toolbar_pet(self):
         """Activate the pet to move in the macOS toolbar."""
@@ -173,6 +178,23 @@ class MainMenuWindow(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Connection Error", f"Failed to connect: {str(e)}")
             print(f"❌ Connection error: {e}")
+    
+    def leave_room(self):
+        """Leave the current room without re-entering."""
+        if hasattr(self.parent_app, 'room_worker') and self.parent_app.room_worker:
+            reply = QMessageBox.question(
+                self, 
+                'Leave Room', 
+                'Are you sure you want to leave the room?',
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No
+            )
+            
+            if reply == QMessageBox.Yes:
+                self.parent_app.leave_room()
+                QMessageBox.information(self, "Left Room", "You have left the room.")
+        else:
+            QMessageBox.information(self, "Not in Room", "You are not currently in a room.")
 
     def open_parameter_dialog(self):
         """Open a dialog to take two parameters."""
