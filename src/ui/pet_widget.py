@@ -15,6 +15,8 @@ class PetWidget(QLabel):
         self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setStyleSheet("background-color: transparent;")
         self.setScaledContents(True)
+        # Pet label should NOT be transparent to mouse events
+        self.setAttribute(Qt.WA_TransparentForMouseEvents, False)
         self._movie = None
         self._animation = None
         # Enable mouse tracking for hover events
@@ -56,6 +58,18 @@ class PetWidget(QLabel):
         base_width = max(40, int(min(width, height) * ratio))
         base_height = int(base_width * 2 / 3)  # Height is 2/3 of width
         self.resize(base_width, base_height)
+
+    def moveEvent(self, event):
+        """Called when pet moves - update parent window's mask."""
+        super().moveEvent(event)
+        if self.parent() and hasattr(self.parent(), 'update_mask'):
+            self.parent().update_mask()
+
+    def resizeEvent(self, event):
+        """Called when pet resizes - update parent window's mask."""
+        super().resizeEvent(event)
+        if self.parent() and hasattr(self.parent(), 'update_mask'):
+            self.parent().update_mask()
 
     def enterEvent(self, event):
         """When mouse enters the pet widget, change cursor to pointing hand."""

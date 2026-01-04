@@ -6,7 +6,7 @@ import time
 
 from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow
 from PyQt5.QtCore import QTimer, Qt, QPoint, QElapsedTimer, QPropertyAnimation
-from PyQt5.QtGui import QPixmap, QMovie
+from PyQt5.QtGui import QPixmap, QMovie, QRegion
 
 import os
 import random
@@ -49,8 +49,6 @@ class PetApp(QMainWindow):
 
         self.pet_kind, self.pet_color = get_current_pet()
         self.pet_behavior, self.pet_label = self.add_pet("Cat1", self.pet_kind, self.pet_color)
-        # Allow mouse events on the pet label so it can be clicked
-        # self.pet_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         self.toolbar_icon = None
 
         # Health and hunger mechanics
@@ -65,14 +63,33 @@ class PetApp(QMainWindow):
         self.selected_food = None  # Currently selected food
 
         # Set up window
-        # Removed Qt.WindowTransparentForInput to allow mouse events on pet
+        # Use mask to define interactive area - only pet can receive mouse events
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
         screen_geometry = QApplication.primaryScreen().availableGeometry()
         screen_width = screen_geometry.width()
         screen_height = screen_geometry.height()
-        self.resize(screen_width - 100, screen_height - 100)
-        print("DEBUG: 主窗口已设置，移除了 WindowTransparentForInput 标志")
+        self.resize(screen_width, screen_height)
+        
+        # Initialize mask after pet is positioned
+        self.update_mask()
+        print("DEBUG: 主窗口已设置，使用mask限制鼠标交互区域为小猫区域")
+
+    def update_mask(self):
+        """Update window mask to only capture mouse events in pet area.
+        
+        This makes the window transparent to mouse events except where the pet is.
+        Performance impact is minimal - only updates when pet moves/resizes.
+        """
+        if not hasattr(self, 'pet_label'):
+            return
+        
+        # Create a region matching the pet's current geometry
+        pet_rect = self.pet_label.geometry()
+        region = QRegion(pet_rect)
+        
+        # Set the mask - only this region will capture mouse events
+        self.setMask(region)
 
     def activate_toolbar_pet(self):
         """Create the moving pet icon in the toolbar and hide the desktop pet."""
