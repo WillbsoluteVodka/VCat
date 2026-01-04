@@ -58,6 +58,7 @@ class PetApp(QMainWindow):
         self.current_room_id = None
         self.is_room_holder = False
         self.room_worker = None  # For compatibility with menu_bar.py checks
+        self.remote_pets = {}  # Track remote pets by user_id
 
         # Health and hunger mechanics
         self.health_bar = HealthBar(self)
@@ -308,7 +309,92 @@ class PetApp(QMainWindow):
         self.pet_teleported = False
         print("✅ 宠物已召回并恢复行动")
     
-    def connect_to_room(self, room_id: int, user_id: int):
+    def spawn_remote_pet(self, user_id, pet_kind, pet_color):
+        """Spawn a remote user's pet through portal animation (holder side)"""
+        if user_id in self.remote_pets:
+            print(f"⚠️ User {user_id} 的宠物已存在")
+            return
+        
+        # Create portal at screen center
+        screen = QApplication.primaryScreen().availableGeometry()
+        portal_center_x = screen.width() // 2
+        portal_center_y = screen.height() // 2
+        
+        portal = QLabel(self)
+        portal.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        portal.setAttribute(Qt.WA_TranslucentBackground)
+        portal_pixmap = QPixmap(resource_path("src/icon/portal.png"))
+        portal.setPixmap(portal_pixmap)
+        portal.setScaledContents(True)
+        
+        portal_size = int(screen.width() * 0.1)
+        portal.resize(portal_size, portal_size)
+        portal.move(portal_center_x - portal_size // 2, portal_center_y - portal_size // 2)
+        portal.lower()
+        portal.show()
+        
+        print(f"🌀 传送门已显示，正在召唤 User {user_id} 的宠物...")
+        
+        # Add the remote pet (initially hidden, will appear from portal)
+        remote_pet_behavior, remote_pet_label = self.add_pet(
+            f"RemotePet_{user_id}",
+            pet_kind,
+            pet_color
+        )
+        
+        # Position pet at portal center initially (hidden)
+        remote_pet_label.move(
+            portal_center_x - remote_pet_label.width() // 2,
+            portal_center_y - remote_pet_label.height() // 2
+        )
+        remote_pet_label.hide()
+        
+        # Store remote pet info
+        self.remote_pets[user_id] = {
+            'behavior': remote_pet_behavior,
+            'label': remote_pet_label,
+            'pet_kind': pet_kind,
+            'pet_color': pet_color
+        }
+        
+        # Pause the remote pet's behavior initially
+        remote_pet_behavior.pause()
+        
+        # Animate pet coming out of portal
+        def show_pet_from_portal():
+            # Play end_move_portal animation (pet emerging)
+            end_movie = QMovie(resource_path(load_pet_data(pet_kind, pet_color, "end_move_portal")))
+            remote_pet_label.setMovie(end_movie)
+            remote_pet_label.setScaledContents(True)
+            remote_pet_label.show()
+            end_movie.start()
+            
+            def finish_spawn():
+                try:
+                    end_movie.stop()
+                except Exception:
+                    pass
+                
+                # Hide portal
+                portal.hide()
+                portal.deleteLater()
+                
+                # Resume pet behavior
+                remote_pet_behavior.resume(self, lambda: self.check_switch_state(remote_pet_behavior, user_id))
+                print(f"✅ User {user_id} 的宠物已生成")
+            
+            finish_timer = QTimer(self)
+            finish_timer.setSingleShot(True)
+            finish_timer.timeout.connect(finish_spawn)
+            finish_timer.start(1000)
+        
+        # Delay before showing pet (portal display time)
+        spawn_timer = QTimer(self)
+        spawn_timer.setSingleShot(True)
+        spawn_timer.timeout.connect(show_pet_from_portal)
+        spawn_timer.start(500)  # Show portal for 500ms before pet emerges
+    
+    def connect_to_room(self, room_id, user_id):
         """Connect to a room (called from menu)"""
         # Stop existing connection if any
         if self.room_thread and self.room_thread.is_alive():
@@ -348,9 +434,23 @@ class PetApp(QMainWindow):
                 for member in members:
                     marker = "👑" if member['is_holder'] else "👤"
                     print(f"  {marker} User {member['user_id']}: {member['pet_kind']} - {member['pet_color']}")
+                
+                # If holder, spawn pets for new members
+                if self.is_room_holder:
+                    for member in members:
+                        user_id = member['user_id']
+                        if not member['is_holder'] and user_id not in self.remote_pets:
+                            # New member - spawn their pet
+                            print(f"🌀 为新成员 User {user_id} 生成宠物...")
+                            self.spawn_remote_pet(user_id, member['pet_kind'], member['pet_color'])
             
             elif event_type == 'member_joined':
                 print(f"🔔 新成员加入: User {data['user_id']}")
+                # Spawn remote pet if holder
+                if self.is_room_holder:
+                    # Get member info from the updated members_list that follows
+                    # We'll handle spawning in the members_list event to get full pet info
+                    pass
             
             elif event_type == 'member_left':
                 print(f"🔔 成员离开: User {data['user_id']}")
