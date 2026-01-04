@@ -77,6 +77,10 @@ class LegacyBehaviorAdapter:
     def resume(self, parent, callback):
         """Resume the pet's behavior from its current state."""
         return self._inner.resume(parent, callback)
+    
+    def pet_move_to_portal(self, parent, callback):
+        """Move pet to portal (for teleportation)."""
+        return self._inner.pet_move_to_portal(parent, callback)
 
     @property
     def animation(self):

@@ -5,7 +5,7 @@ import threading
 import time
 
 from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow
-from PyQt5.QtCore import QTimer, Qt, QPoint, QElapsedTimer, QPropertyAnimation
+from PyQt5.QtCore import QTimer, Qt, QPoint, QElapsedTimer, QPropertyAnimation, QMetaObject, Q_ARG
 from PyQt5.QtGui import QPixmap, QMovie
 
 import os
@@ -320,6 +320,13 @@ class PetApp(QMainWindow):
         supabase_url = os.environ.get('SUPABASE_URL', 'https://qamgefqejxydheqabdxo.supabase.co')
         supabase_key = os.environ.get('SUPABASE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhbWdlZnFlanh5ZGhlcWFiZHhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0NTE5NjAsImV4cCI6MjA4MjAyNzk2MH0.g2t5nlqUuOzu0z3adJFkvqNLwztljL3d3fE6SHOtx7I')
         
+        # Check if room exists first to determine if user will be holder
+        from supabase import create_client
+        supabase_sync = create_client(supabase_url, supabase_key)
+        room_check = supabase_sync.table("pet_rooms").select("*").eq("room_id", room_id).execute()
+        
+        will_be_holder = not room_check.data  # If room doesn't exist, user will be holder
+        
         # Create stop event
         self.room_stop_event = threading.Event()
         
@@ -334,11 +341,6 @@ class PetApp(QMainWindow):
                 self.is_room_holder = data['is_holder']
                 role = "房主" if data['is_holder'] else "成员"
                 print(f"✅ 已连接到房间 {data['room_id']} (身份: {role})")
-                
-                # If not holder, create portal and teleport pet
-                if not data['is_holder']:
-                    print("🌀 创建传送门并传送宠物...")
-                    self.teleport_pet_to_portal()
             
             elif event_type == 'members_list':
                 members = data['members']
@@ -361,7 +363,11 @@ class PetApp(QMainWindow):
                 # Recall pet if it was teleported
                 if hasattr(self, 'pet_teleported') and self.pet_teleported:
                     print("📞 召回宠物...")
-                    self.recall_pet_from_portal()
+                    QMetaObject.invokeMethod(
+                        self,
+                        "recall_pet_from_portal",
+                        Qt.QueuedConnection
+                    )
             
             elif event_type == 'error':
                 print(f"❌ 错误: {data['message']}")
@@ -375,6 +381,11 @@ class PetApp(QMainWindow):
         self.room_thread.start()
         self.room_worker = self.room_thread  # Set for menu_bar compatibility
         print(f"🚀 正在连接到房间 {room_id}...")
+        
+        # If not holder, teleport pet immediately (in main thread)
+        if not will_be_holder:
+            print("🌀 创建传送门并传送宠物...")
+            self.teleport_pet_to_portal()
     
     def leave_room(self):
         """Leave current room (wrapper for disconnect_from_room)"""
