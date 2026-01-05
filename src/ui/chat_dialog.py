@@ -299,7 +299,7 @@ class ChatDialog(QWidget):
             self.whisper.error_occurred.connect(self._on_voice_error)
         
         if not self.is_voice_active:
-            # Start recording
+            # Start recording (will auto-stop on silence)
             self.is_voice_active = True
             self.voice_btn.setText("⏹")
             self.voice_btn.setStyleSheet("""
@@ -313,17 +313,27 @@ class ChatDialog(QWidget):
                     background-color: #FF6B60;
                 }
             """)
-            self.input_field.setPlaceholderText("正在录音...说完点击停止")
+            self.input_field.setPlaceholderText("🎤 说话中...停顿1.5秒自动识别")
             self.whisper.start_recording()
         else:
-            # Stop recording and transcribe
-            self.is_voice_active = False
-            self._reset_voice_button()
-            self.input_field.setPlaceholderText("正在识别...")
-            self.whisper.stop_recording()
+            # Manual stop (user clicked again)
+            self._stop_voice_and_transcribe()
+    
+    def _stop_voice_and_transcribe(self):
+        """Stop recording and start transcription."""
+        if not self.is_voice_active:
+            return
+        self.is_voice_active = False
+        self._reset_voice_button()
+        self.input_field.setPlaceholderText("正在识别...")
+        self.whisper.stop_recording()
     
     def _on_transcription_ready(self, text: str):
         """Handle transcription result from Whisper."""
+        # Reset button state (in case of VAD auto-stop)
+        self.is_voice_active = False
+        self._reset_voice_button()
+        
         # Insert transcribed text into input field
         current_text = self.input_field.text()
         if current_text:

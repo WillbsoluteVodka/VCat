@@ -19,10 +19,16 @@ if [ ! -d ".venv" ]; then
     echo "虚拟环境不存在，正在创建并安装依赖..."
     uv sync
     echo "依赖安装完成"
+else
+    # 检查 uv.lock 是否比 .venv 新，如果是则需要更新依赖
+    if [ "uv.lock" -nt ".venv" ]; then
+        echo "检测到依赖更新，正在同步..."
+        uv sync
+        echo "依赖同步完成"
+    fi
 fi
 
 # 设置 PYTHONPATH 并使用 uv 运行应用
 export PYTHONPATH=$(pwd)
 echo "正在启动 VCat 桌面宠物..."
 uv run python src/main_window.py
-

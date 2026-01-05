@@ -220,10 +220,10 @@ src/
 |------|------|-----------|------|------|
 | **Phase 1** | 基础对话框 UI + 文字输入 + hardcode 回复 | 2-3 天 | 无 | ✅ 完成 |
 | **Phase 2** | 气泡跟随猫咪位置 | 1-2 天 | Phase 1 | ✅ 完成 |
-| **Phase 3** | 语音唤醒 + 语音输入 | 2-3 天 | Phase 2 | ✅ 完成 |
+| **Phase 3** | 语音唤醒 (NSSpeechRecognizer) | 2-3 天 | Phase 2 | ✅ 完成 |
 | **Phase 4** | 毛玻璃效果优化 (NSVisualEffectView) | 1-2 天 | Phase 1 | ⚠️ 回退方案 |
 | **Phase 5** | 接入 AI（GPT/Claude API） | 1-2 天 | Phase 1 | ⏳ 待开始 |
-| **Future** | Whisper 本地语音识别 | TBD | Phase 3 | 📋 规划中 |
+| **Whisper** | 本地语音识别 (faster-whisper + VAD) | 1 天 | Phase 3 | ✅ 完成 |
 
 ### Phase 1 详细任务 ✅
 
@@ -248,11 +248,6 @@ src/
 
 ### Phase 3 详细任务 ✅
 
-**语音输入 (TODO - 待 Whisper 实现)**
-- [ ] macOS Dictation 触发不稳定，暂时禁用
-- [ ] 计划使用 Whisper 本地模型实现语音转文字
-- [ ] 语音按钮 UI 已就绪，待后端实现
-
 **语音唤醒 (NSSpeechRecognizer) ✅**
 - [x] 创建 VoiceRecognizer 类 - 仅监听唤醒词
 - [x] 唤醒词列表: "Hey Cat", "Hey Kitty", "Cat", "Kitty" 等
@@ -261,14 +256,8 @@ src/
 - [x] setListensInForegroundOnly_(False) 允许后台监听
 - ⚠️ 注意: 系统会显示语音识别反馈图标，这是 macOS 的设计，无法隐藏
 
-**语音输入 (TODO - 待 Whisper 实现)**
-- [ ] macOS Dictation 触发不稳定，暂时禁用
-- [ ] 计划使用 Whisper 本地模型实现语音转文字
-- [ ] 语音按钮 UI 已就绪，待后端实现
-
 **⚠️ 使用说明**：
 - 语音唤醒: 随时说 "Hey Cat" 打开对话框（需要安静环境）
-- 语音输入: 暂时不可用，开发中
 
 ### Phase 4 详细任务 ⚠️ (使用回退方案)
 
@@ -288,20 +277,30 @@ src/
 - [ ] 迁移到 PySide6（更好的 macOS 集成）
 - [ ] 或使用纯 Cocoa/Swift 实现对话框窗口
 
-### Future: Whisper 本地语音识别 📋
+### Whisper 本地语音识别 ✅
 
-**计划功能**：
-- 使用 OpenAI Whisper 本地模型进行真正的语音转文字
-- 支持中英文混合识别
-- 离线运行，无需网络
-- 高准确率，支持自由对话
+**已实现功能**：
+- [x] 使用 faster-whisper 本地模型进行语音转文字
+- [x] 支持中英文混合识别
+- [x] 离线运行，无需网络
+- [x] VAD (Voice Activity Detection) 自动停止录音
+- [x] 说完话停顿 1.5 秒自动触发识别
 
-**技术选型**：
-- `openai-whisper` Python 包
-- 或 `whisper.cpp` 本地推理
-- 模型大小: tiny (39M) / base (74M) / small (244M)
+**技术实现**：
+- `faster-whisper` - 高效 Whisper 推理引擎
+- `sounddevice` - 音频录制
+- `numpy` - 音频数据处理
+- 模型: base (74MB)，首次使用自动下载
 
-**预计工作量**: 2-3 天
+**使用方式**：
+1. 点击 🎤 按钮开始录音
+2. 说话（支持中英文）
+3. 停顿 1.5 秒后自动识别并填入输入框
+4. 也可手动点击停止按钮
+
+**相关文件**：
+- `src/chat/whisper_transcriber.py` - Whisper 转录模块
+- `src/ui/chat_dialog.py` - 对话框集成
 
 ---
 

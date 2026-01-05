@@ -48,7 +48,7 @@ class BehaviorManager:
             else:
                 behavior.set_state(PetActions.WALKING)
         elif current_state == PetActions.SITTING:
-            if random.random() <= 0.99: # leave it 0.99 for all phases
+            if random.random() <= 0.01:
                 behavior.set_state(PetActions.CODING)
             elif random.random() <= 0.3:
                 behavior.set_state(PetActions.SLEEPING)

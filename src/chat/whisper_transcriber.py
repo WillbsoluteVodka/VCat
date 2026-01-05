@@ -1,7 +1,7 @@
 """
 Whisper-based speech-to-text transcription for VCat.
 Uses faster-whisper for efficient local transcription.
-Supports Chinese and English.
+Supports Chinese and English with VAD auto-stop.
 """
 
 import os
@@ -12,7 +12,7 @@ from queue import Queue
 
 import numpy as np
 import sounddevice as sd
-from PyQt5.QtCore import QObject, pyqtSignal, QThread
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QThread
 
 # Try to import faster-whisper
 try:
@@ -25,39 +25,70 @@ except ImportError:
 
 class AudioRecorder:
     """
-    Simple audio recorder using sounddevice.
-    Records audio from the microphone and returns numpy array.
+    Audio recorder with Voice Activity Detection (VAD).
+    Automatically stops recording after silence is detected.
     """
     
     SAMPLE_RATE = 16000  # Whisper expects 16kHz
     CHANNELS = 1
+    SILENCE_THRESHOLD = 0.01  # RMS threshold for silence detection
+    SILENCE_DURATION = 1.5   # Seconds of silence before auto-stop
     
-    def __init__(self):
+    def __init__(self, on_auto_stop: Optional[Callable] = None):
         self.recording = False
         self.audio_data = []
         self._lock = threading.Lock()
+        self.on_auto_stop = on_auto_stop  # Callback when auto-stop triggers
+        self._silence_frames = 0
+        self._frames_for_silence = int(self.SILENCE_DURATION * self.SAMPLE_RATE / 1024)  # ~23 frames for 1.5s
+        self._has_speech = False  # Track if we've heard any speech
         
     def start(self):
-        """Start recording audio."""
+        """Start recording audio with VAD."""
         with self._lock:
             self.audio_data = []
             self.recording = True
+            self._silence_frames = 0
+            self._has_speech = False
             
         def callback(indata, frames, time, status):
             if status:
                 print(f"[AudioRecorder] Status: {status}")
-            if self.recording:
-                with self._lock:
-                    self.audio_data.append(indata.copy())
+            if not self.recording:
+                return
+                
+            with self._lock:
+                self.audio_data.append(indata.copy())
+                
+            # Calculate RMS for VAD
+            rms = np.sqrt(np.mean(indata ** 2))
+            
+            if rms > self.SILENCE_THRESHOLD:
+                # Speech detected
+                self._silence_frames = 0
+                self._has_speech = True
+            else:
+                # Silence detected
+                if self._has_speech:  # Only count silence after speech
+                    self._silence_frames += 1
+                    
+                    # Auto-stop after enough silence
+                    if self._silence_frames >= self._frames_for_silence:
+                        print(f"[AudioRecorder] Silence detected, auto-stopping...")
+                        self.recording = False
+                        if self.on_auto_stop:
+                            # Call in main thread
+                            self.on_auto_stop()
         
         self.stream = sd.InputStream(
             samplerate=self.SAMPLE_RATE,
             channels=self.CHANNELS,
             dtype='float32',
+            blocksize=1024,  # ~64ms per block
             callback=callback
         )
         self.stream.start()
-        print("[AudioRecorder] Recording started...")
+        print("[AudioRecorder] Recording started (auto-stop on 1.5s silence)...")
         
     def stop(self) -> np.ndarray:
         """Stop recording and return audio data."""
@@ -175,10 +206,22 @@ class WhisperTranscriber(QObject):
         
         self.model: Optional[WhisperModel] = None
         self.model_size = model_size
-        self.recorder = AudioRecorder()
+        self.recorder = AudioRecorder(on_auto_stop=self._on_vad_auto_stop)
         self.worker: Optional[TranscriptionWorker] = None
         self._is_loading = False
         self._is_recording = False
+        
+    def _on_vad_auto_stop(self):
+        """Called by AudioRecorder when VAD detects silence."""
+        # Use QTimer to ensure we're on the main thread
+        from PyQt5.QtCore import QMetaObject, Qt
+        QMetaObject.invokeMethod(self, "_do_auto_stop", Qt.QueuedConnection)
+    
+    @pyqtSlot()
+    def _do_auto_stop(self):
+        """Actually perform the auto-stop (called on main thread)."""
+        if self._is_recording:
+            self.stop_recording()
         
     def load_model(self):
         """Load the Whisper model. Called lazily on first use."""
