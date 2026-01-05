@@ -1,6 +1,7 @@
 """
 Siri-style chat dialog for VCat.
 A floating dialog that appears above the cat for conversation.
+Supports Whisper-based voice input.
 """
 
 from PyQt5.QtWidgets import (
@@ -12,6 +13,13 @@ from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QTimer
 from PyQt5.QtGui import QColor, QFont, QPainter, QBrush, QPen, QPainterPath
 
 from src.chat.handler import ChatHandler
+
+# Whisper voice transcription
+try:
+    from src.chat.whisper_transcriber import WhisperTranscriber, is_whisper_available
+    HAS_WHISPER = is_whisper_available()
+except ImportError:
+    HAS_WHISPER = False
 
 # TODO: Native macOS blur effect (NSVisualEffectView) disabled due to 
 # PyQt5/PyObjC compatibility issues causing crashes. Using semi-transparent
@@ -257,9 +265,16 @@ class ChatDialog(QWidget):
         
         main_layout.addWidget(self.container)
         
-        # Initialize voice recognizer (lazy load)
-        self.voice_recognizer = None
+        # Initialize Whisper voice transcriber (lazy load)
+        self.whisper = None
         self.is_voice_active = False
+        
+        # Update voice button tooltip based on availability
+        if HAS_WHISPER:
+            self.voice_btn.setToolTip("点击开始/停止语音输入")
+        else:
+            self.voice_btn.setToolTip("语音功能不可用")
+            self.voice_btn.setEnabled(False)
         
         # Show initial greeting
         self.add_cat_greeting()
@@ -272,11 +287,66 @@ class ChatDialog(QWidget):
     
     def toggle_voice_input(self):
         """Toggle voice input on/off with single click."""
-        # TODO: 语音输入功能待实现，计划使用 Whisper 模型
-        # 暂时只显示提示，不实际启动任何功能
-        self.input_field.setPlaceholderText("🌙 语音输入开发中喵～")
-        # 重新聚焦输入框，确保可以继续输入
+        if not HAS_WHISPER:
+            self.input_field.setPlaceholderText("语音功能不可用喵～")
+            return
+            
+        # Initialize Whisper on first use
+        if self.whisper is None:
+            self.whisper = WhisperTranscriber(model_size='base')
+            self.whisper.transcription_ready.connect(self._on_transcription_ready)
+            self.whisper.status_changed.connect(self._on_voice_status_changed)
+            self.whisper.error_occurred.connect(self._on_voice_error)
+        
+        if not self.is_voice_active:
+            # Start recording
+            self.is_voice_active = True
+            self.voice_btn.setText("⏹")
+            self.voice_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #FF3B30;
+                    color: white;
+                    border: none;
+                    border-radius: 18px;
+                }
+                QPushButton:hover {
+                    background-color: #FF6B60;
+                }
+            """)
+            self.input_field.setPlaceholderText("正在录音...说完点击停止")
+            self.whisper.start_recording()
+        else:
+            # Stop recording and transcribe
+            self.is_voice_active = False
+            self._reset_voice_button()
+            self.input_field.setPlaceholderText("正在识别...")
+            self.whisper.stop_recording()
+    
+    def _on_transcription_ready(self, text: str):
+        """Handle transcription result from Whisper."""
+        # Insert transcribed text into input field
+        current_text = self.input_field.text()
+        if current_text:
+            self.input_field.setText(f"{current_text} {text}")
+        else:
+            self.input_field.setText(text)
+        self.input_field.setPlaceholderText("跟小猫说点什么喵～")
         self.input_field.setFocus()
+    
+    def _on_voice_status_changed(self, status: str):
+        """Handle voice status updates."""
+        if status:
+            self.input_field.setPlaceholderText(status)
+        else:
+            self.input_field.setPlaceholderText("跟小猫说点什么喵～")
+    
+    def _on_voice_error(self, error: str):
+        """Handle voice recognition error."""
+        self.is_voice_active = False
+        self._reset_voice_button()
+        self.input_field.setPlaceholderText(f"❌ {error}")
+        # Reset placeholder after 2 seconds
+        QTimer.singleShot(2000, lambda: self.input_field.setPlaceholderText("跟小猫说点什么喵～"))
         
     def _reset_voice_button(self):
         """Reset voice button to default state."""
@@ -294,13 +364,13 @@ class ChatDialog(QWidget):
         """)
             
     def stop_voice_input(self):
-        """Stop macOS Dictation."""
+        """Stop voice recording if active."""
         if not self.is_voice_active:
             return
             
         try:
-            if self.voice_recognizer:
-                self.voice_recognizer.stop()
+            if self.whisper:
+                self.whisper.cancel()
             
             # Reset button style
             self._reset_voice_button()
@@ -309,7 +379,7 @@ class ChatDialog(QWidget):
             self.input_field.setPlaceholderText("跟小猫说点什么喵～")
             
         except Exception as e:
-            print(f"Failed to stop dictation: {e}")
+            print(f"Failed to stop voice input: {e}")
         
     def send_message(self):
         """Handle sending a message."""
@@ -349,10 +419,10 @@ class ChatDialog(QWidget):
         if self.position_timer:
             self.position_timer.stop()
             self.position_timer = None
-        # Stop voice recognizer
-        if self.voice_recognizer:
-            self.voice_recognizer.stop()
-            self.voice_recognizer = None
+        # Stop whisper if recording
+        if self.whisper:
+            self.whisper.cancel()
+            self.whisper = None
         self.chat_handler.clear_history()
         self.dialog_closed.emit()
         self.close()
