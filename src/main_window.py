@@ -298,17 +298,63 @@ class PetApp(QMainWindow):
         if not hasattr(self, 'pet_teleported') or not self.pet_teleported:
             return
         
-        # Show pet at center of screen
-        screen_geometry = QApplication.primaryScreen().availableGeometry()
-        center_x = (screen_geometry.width() - self.pet_label.width()) // 2
-        center_y = (screen_geometry.height() - self.pet_label.height()) // 2
-        self.pet_label.move(center_x, center_y)
-        self.pet_label.show()
+        print("🌀 宠物正在从传送门返回...")
         
-        # Resume normal behavior
-        self.pet_behavior.resume(self, lambda: self.check_switch_state(self.pet_behavior))
-        self.pet_teleported = False
-        print("✅ 宠物已召回并恢复行动")
+        # Create portal at screen center
+        screen = QApplication.primaryScreen().availableGeometry()
+        portal_center_x = screen.width() // 2
+        portal_center_y = screen.height() // 2
+        
+        portal = QLabel(self)
+        portal.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        portal.setAttribute(Qt.WA_TranslucentBackground)
+        portal_pixmap = QPixmap(resource_path("src/icon/portal.png"))
+        portal.setPixmap(portal_pixmap)
+        portal.setScaledContents(True)
+        
+        portal_size = int(screen.width() * 0.1)
+        portal.resize(portal_size, portal_size)
+        portal.move(portal_center_x - portal_size // 2, portal_center_y - portal_size // 2)
+        portal.lower()
+        portal.show()
+        
+        # Position pet at center (initially hidden)
+        center_x = (screen.width() - self.pet_label.width()) // 2
+        center_y = (screen.height() - self.pet_label.height()) // 2
+        self.pet_label.move(center_x, center_y)
+        
+        # After portal shows for a moment, play end_move_portal animation (pet emerging)
+        def show_pet_emerging():
+            end_movie = QMovie(resource_path(load_pet_data(self.pet_kind, self.pet_color, "end_move_portal")))
+            self.pet_label.setMovie(end_movie)
+            self.pet_label.setScaledContents(True)
+            self.pet_label.show()
+            end_movie.start()
+            
+            def finish_recall():
+                try:
+                    end_movie.stop()
+                except Exception:
+                    pass
+                
+                # Hide portal
+                portal.hide()
+                portal.deleteLater()
+                
+                # Resume normal behavior
+                self.pet_behavior.resume(self, lambda: self.check_switch_state(self.pet_behavior))
+                self.pet_teleported = False
+                print("✅ 宠物已召回并恢复行动")
+            
+            finish_timer = QTimer(self)
+            finish_timer.setSingleShot(True)
+            finish_timer.timeout.connect(finish_recall)
+            finish_timer.start(1000)
+        
+        emerge_timer = QTimer(self)
+        emerge_timer.setSingleShot(True)
+        emerge_timer.timeout.connect(show_pet_emerging)
+        emerge_timer.start(500)  # Show portal for 500ms before pet emerges
     
     @pyqtSlot(int, str, str)
     def spawn_remote_pet(self, user_id, pet_kind, pet_color):
