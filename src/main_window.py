@@ -287,7 +287,7 @@ class PetApp(QMainWindow):
         def on_portal_complete():
             """After portal animation, keep pet hidden and frozen"""
             self.pet_label.hide()
-            print("✅ 宠物已传送到房主处，行动已冻结")
+            print("[TELEPORT] Pet has been teleported to the host and actions are frozen")
         
         # Use the pet_move_to_portal action
         self.pet_behavior.pet_move_to_portal(self, on_portal_complete)
@@ -298,7 +298,7 @@ class PetApp(QMainWindow):
         if not hasattr(self, 'pet_teleported') or not self.pet_teleported:
             return
         
-        print("🌀 宠物正在从传送门返回...")
+        print("[TELEPORT] Retrieving pet from portal...")
         
         # Create portal at screen center
         screen = QApplication.primaryScreen().availableGeometry()
@@ -344,7 +344,7 @@ class PetApp(QMainWindow):
                 # Resume normal behavior
                 self.pet_behavior.resume(self, lambda: self.check_switch_state(self.pet_behavior))
                 self.pet_teleported = False
-                print("✅ 宠物已召回并恢复行动")
+                print("[TELEPORT] Pet has been recalled and resumed")
             
             finish_timer = QTimer(self)
             finish_timer.setSingleShot(True)
@@ -360,7 +360,7 @@ class PetApp(QMainWindow):
     def spawn_remote_pet(self, user_id, pet_kind, pet_color):
         """Spawn a remote user's pet through portal animation (holder side)"""
         if user_id in self.remote_pets:
-            print(f"⚠️ User {user_id} 的宠物已存在")
+            print(f"[TELEPORT] Warning: User {user_id}'s pet already exists")
             return
         
         # Create portal at screen center
@@ -381,7 +381,7 @@ class PetApp(QMainWindow):
         portal.lower()
         portal.show()
         
-        print(f"🌀 传送门已显示，正在召唤 User {user_id} 的宠物...")
+        print(f"[TELEPORT] Portal established, summoning User {user_id}'s pet...")
         
         # Add the remote pet (initially hidden, will appear from portal)
         remote_pet_behavior, remote_pet_label = self.add_pet(
@@ -429,7 +429,7 @@ class PetApp(QMainWindow):
                 
                 # Resume pet behavior
                 remote_pet_behavior.resume(self, lambda: self.check_switch_state(remote_pet_behavior, user_id))
-                print(f"✅ User {user_id} 的宠物已生成")
+                print(f"[TELEPORT] User {user_id}'s pet has been spawned")
             
             finish_timer = QTimer(self)
             finish_timer.setSingleShot(True)
@@ -446,7 +446,7 @@ class PetApp(QMainWindow):
     def despawn_remote_pet(self, user_id):
         """Remove a remote user's pet with portal animation (holder side)"""
         if user_id not in self.remote_pets:
-            print(f"⚠️ User {user_id} 的宠物不存在")
+            print(f"[TELEPORT] Warning: User {user_id}'s pet does not exist")
             return
         
         remote_pet_info = self.remote_pets[user_id]
@@ -477,7 +477,7 @@ class PetApp(QMainWindow):
         portal.lower()
         portal.show()
         
-        print(f"🌀 User {user_id} 的宠物正在返回...")
+        print(f"[TELEPORT] User {user_id}'s pet is returning...")
         
         # Play start_move_portal animation (pet entering portal)
         start_movie = QMovie(resource_path(load_pet_data(pet_kind, pet_color, "start_move_portal")))
@@ -505,7 +505,7 @@ class PetApp(QMainWindow):
                 
                 remote_pet_label.deleteLater()
                 del self.remote_pets[user_id]
-                print(f"✅ User {user_id} 的宠物已移除")
+                print(f"[TELEPORT] User {user_id}'s pet has been removed")
             
             cleanup_timer = QTimer(self)
             cleanup_timer.setSingleShot(True)
@@ -541,7 +541,7 @@ class PetApp(QMainWindow):
             'pet_color': self.pet_color
         }
         supabase_sync.table('user_cur_pet').upsert(user_pet_data).execute()
-        print(f"📝 更新用户 {user_id} 的宠物信息: {self.pet_kind} - {self.pet_color}")
+        print(f"[TELEPORT] Updated user {user_id}'s pet info: {self.pet_kind} - {self.pet_color}")
         
         room_check = supabase_sync.table("pet_rooms").select("*").eq("room_id", room_id).execute()
         
@@ -560,14 +560,14 @@ class PetApp(QMainWindow):
                 self.current_room_id = data['room_id']
                 self.is_room_holder = data['is_holder']
                 role = "房主" if data['is_holder'] else "成员"
-                print(f"✅ 已连接到房间 {data['room_id']} (身份: {role})")
+                print(f"[TELEPORT] Connected to room {data['room_id']} AS {role}")
             
             elif event_type == 'members_list':
                 members = data['members']
-                print(f"\n📋 房间成员 (共 {len(members)} 人):")
+                print(f"\n[ROOM] Room has {len(members)} members:")
                 for member in members:
                     marker = "👑" if member['is_holder'] else "👤"
-                    print(f"  {marker} User {member['user_id']}: {member['pet_kind']} - {member['pet_color']}")
+                    print(f"    {marker} User {member['user_id']}: {member['pet_kind']} - {member['pet_color']}")
                 
                 # If holder, spawn pets for new members
                 if self.is_room_holder:
@@ -575,7 +575,7 @@ class PetApp(QMainWindow):
                         user_id = member['user_id']
                         if not member['is_holder'] and user_id not in self.remote_pets:
                             # New member - spawn their pet (must call from main thread)
-                            print(f"🌀 为新成员 User {user_id} 生成宠物...")
+                            print(f"[TELEPORT] Spawning pet for new member User {user_id}...")
                             QMetaObject.invokeMethod(
                                 self,
                                 "spawn_remote_pet",
@@ -586,7 +586,7 @@ class PetApp(QMainWindow):
                             )
             
             elif event_type == 'member_joined':
-                print(f"🔔 新成员加入: User {data['user_id']}")
+                print(f"[ROOM] New member joined: User {data['user_id']}")
                 # Spawn remote pet if holder
                 if self.is_room_holder:
                     # Get member info from the updated members_list that follows
@@ -594,7 +594,7 @@ class PetApp(QMainWindow):
                     pass
             
             elif event_type == 'member_left':
-                print(f"🔔 成员离开: User {data['user_id']}")
+                print(f"[ROOM] Member left: User {data['user_id']}")
                 # Remove remote pet if holder
                 if self.is_room_holder:
                     user_id = data['user_id']
@@ -607,13 +607,13 @@ class PetApp(QMainWindow):
                         )
             
             elif event_type == 'room_closed':
-                print(f"🚪 房间已关闭: {data.get('message', '未知原因')}")
+                print(f"[TELEPORT] Room closed: {data.get('message', 'Unknown reason')}")
                 self.current_room_id = None
                 self.is_room_holder = False
                 
                 # Recall pet if it was teleported
                 if hasattr(self, 'pet_teleported') and self.pet_teleported:
-                    print("📞 召回宠物...")
+                    print("[TELEPORT] Recalling pet...")
                     QMetaObject.invokeMethod(
                         self,
                         "recall_pet_from_portal",
@@ -621,7 +621,7 @@ class PetApp(QMainWindow):
                     )
             
             elif event_type == 'error':
-                print(f"❌ 错误: {data['message']}")
+                print(f"[TELEPORT] Error: {data['message']}")
         
         # Start connection in background thread
         self.room_thread = threading.Thread(
@@ -631,11 +631,11 @@ class PetApp(QMainWindow):
         )
         self.room_thread.start()
         self.room_worker = self.room_thread  # Set for menu_bar compatibility
-        print(f"🚀 正在连接到房间 {room_id}...")
+        print(f"[TELEPORT] Connecting to room {room_id}...")
         
         # If not holder, teleport pet immediately (in main thread)
         if not will_be_holder:
-            print("🌀 创建传送门并传送宠物...")
+            print("[TELEPORT] Create portal and teleport pet...")
             self.teleport_pet_to_portal()
     
     def leave_room(self):
@@ -646,26 +646,49 @@ class PetApp(QMainWindow):
         """Disconnect from current room"""
         if self.room_thread and self.room_thread.is_alive():
             print("正在断开房间连接...")
+            
+            # Clean up remote pets if holder is leaving
+            if self.is_room_holder:
+                print(f"[TELEPORT] Room holder leaving, cleaning up {len(self.remote_pets)} remote pets...")
+                for user_id in list(self.remote_pets.keys()):
+                    print(f"    [TELEPORT]Cleaning up User {user_id}'s pet")
+                    remote_pet_info = self.remote_pets[user_id]
+                    remote_pet_label = remote_pet_info['label']
+                    remote_pet_behavior = remote_pet_info['behavior']
+                    
+                    # Stop behavior and cleanup
+                    remote_pet_behavior.pause()
+                    remote_pet_label.hide()
+                    remote_pet_label.deleteLater()
+                    
+                    # Remove from behavior manager
+                    if hasattr(self.behavior_manager, 'pets') and f"RemotePet_{user_id}" in self.behavior_manager.pets:
+                        del self.behavior_manager.pets[f"RemotePet_{user_id}"]
+                
+                self.remote_pets.clear()
+                print("[TELEPORT] Remote pets cleaned up.")
+            
             self.room_stop_event.set()
             self.room_thread.join(timeout=3)
+            
             self.current_room_id = None
             self.is_room_holder = False
             self.room_worker = None  # Clear compatibility flag
             
             # Recall pet if it was teleported
             if hasattr(self, 'pet_teleported') and self.pet_teleported:
-                print("📞 召回宠物...")
+                print("[TELEPORT] Recalling pet...")
                 self.recall_pet_from_portal()
             
-            print("✅ 已断开连接")
+            print("[TELEPORT] Disconnected successfully.")
         else:
-            print("当前未连接到任何房间")
+            print("[TELEPORT] Not currently connected to any room.")
     
     def closeEvent(self, event):
         """Handle application shutdown"""
         # Disconnect from room if connected
         if self.room_thread and self.room_thread.is_alive():
-            print("清理房间连接...")
+            print("[TELEPORT] Cleaning up room connection...")
             self.room_stop_event.set()
             self.room_thread.join(timeout=3)
         
