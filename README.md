@@ -14,6 +14,7 @@ This project is a customizable desktop pet application where users can choose a 
 | 坐着 | Sitting | 猫咪静坐等待互动 |
 | 玩耍 | Playing | 猫咪与环境或用户互动 |
 | 对话 | Coding | 猫咪打开终端/文本编辑器与用户交流 |
+| 💩 | Shiting | 猫咪上厕所🚽 铲屎官需要铲屎 |
 
 ---
 
@@ -43,22 +44,32 @@ This project is a customizable desktop pet application where users can choose a 
 
 ## 📋 TODO 开发计划
 
-### 高优先级
-- [ ] **引导教程** - 新用户入门指引
-- [ ] **拖拽小猫 / 猫窝** - 可拖拽交互 (ld)
-- [ ] **传送门 UI + 测试 Refine** - 优化传送门界面和稳定性
-- [ ] **动作切换时可能出现虚线** - 电脑性能问题？
+### 🌟 最高优先级 (Sprint 1)
+| 任务 | 负责人 | 描述 |
+|------|--------|------|
+| 拖拽小猫 + 点击出 Menu Bar | ld | 后续可扩展猫窝功能 |
+| 对话功能改进 | song | 改为 Siri 风格对话框，而非启动 TextEdit |
+| 传送门房间同步显示 | zhao | 各方电脑同时显示房间内容 |
+| 猫咪名字标签 | zhao | 给猫加名字 Label |
+| Control Panel / Setting 窗口 | tu | 调大小、所有动作发生的概率 |
 
-### 中优先级
-- [ ] **多种小猫样式** - 寻找画师/尝试 AI 生成更多皮肤
-- [ ] **购物+喂食逻辑** - 完善商店系统
-- [ ] **对话功能改进** - Coding 功能改为对话框，而非启动 TextEdit
-  - 可能需要新的 UI 或其他实现方式
+### 中优先级 (Sprint 2)
+- [ ] **引导教程** - 新用户入门指引
+- [ ] **传送门 UI + 测试 Refine** - 优化传送门界面和稳定性
+- [ ] **虚线问题修复** (ld)
+- [ ] **多种小猫样式** - AI 生成 (song) + 找画师话术 (zhao)
+- [ ] **购物+喂食逻辑** (optional)
 
 ### 传送门房间功能扩展
-- [ ] **打架系统** - 血量条 + 小游戏
+- [ ] **打架系统** - 血量条 + 小游戏 (洛克王国风格)
 - [ ] **贴贴功能** - 增加好感度
-- [ ] 更多互动玩法...
+- [ ] **房间内猫咪对话** - 类似聊天软件
+
+### 趣味功能
+- [ ] **把鼠标叼走** - Naughty Mode (tu?)
+- [ ] **猫拉屎 💩** - 需要铲屎
+- [ ] **贴着窗口上方走**
+- [ ] **跨屏幕走 (Mac)** - 切屏后自动上 Menu Bar，稳定 2s 后自动下来
 
 ### 🚀 Future Plan
 - [ ] **Agent 功能** - 语音或双击小猫开启 Agent，可控制 Desktop/Chrome 或虚拟环境 Sandbox
@@ -71,9 +82,10 @@ This project is a customizable desktop pet application where users can choose a 
 - 基础功能（走动、基本互动）
 
 ### 付费层 (Premium Tier)
-- **传送门功能** - 需要数据库支持
-- **官方小猫皮肤** - 需要网站支持登录注册
-- **官方 Agent 功能** - 高级 AI 交互
+> 发布渠道：官网 + Steam + GitHub README (Free)
+
+- **官方小猫皮肤** - 付费 + C2C 网站（需支持登录注册）
+- **官方 Agent 功能** - 高级 AI 交互 + Chrome 集成
 
 ---
 
