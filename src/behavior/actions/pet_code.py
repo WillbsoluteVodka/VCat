@@ -5,10 +5,17 @@ import random
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QMovie
 from pet_data_loader import load_pet_data
+from src.ui.chat_dialog import ChatDialog
+
+
+# Global reference to prevent garbage collection
+_active_dialog = None
 
 
 def run(self, parent, callback):
-    """Extracted pet_code action."""
+    """Extracted pet_code action - now shows Siri-style chat dialog."""
+    global _active_dialog
+    
     self.resize_pet_label(parent)
 
     if self.animation and self.animation.state() == getattr(self.animation, 'Running', None):
@@ -23,30 +30,57 @@ def run(self, parent, callback):
     pet_movie.start()
     pet_movie.finished.connect(pet_movie.start)
 
+    # Store callback for later use when dialog closes
+    self._coding_callback = callback
+    
+    # Show chat dialog after a short delay
     coding_duration_timer = QTimer(parent)
     coding_duration_timer.setSingleShot(True)
     self.active_timers.append(coding_duration_timer)
 
-    def after_initial_timer():
-        prob = random.random()
-        if prob < 0.99:
-            # show text via helper
-            showtxt(self)
-        else:
-            path = self.resource_path("behavior/actions/pet_code_sea_terminal.py")
-            runterminal(self, "python " + path)
+    def show_chat_dialog():
+        global _active_dialog
+        
+        # Check if dialog already exists
+        if parent.is_chat_dialog_open:
+            # Dialog already open, just call callback after delay
+            QTimer.singleShot(5000, callback)
+            return
+            
+        # Create and show chat dialog with pet_label reference for position tracking
+        _active_dialog = ChatDialog(pet_label=self.pet_label)
+        parent.is_chat_dialog_open = True
+        parent.chat_dialog = _active_dialog
+        
+        # Get pet position and size
+        pet_pos = self.pet_label.pos()
+        pet_size = self.pet_label.size()
+        
+        # Connect dialog closed signal
+        def on_dialog_closed():
+            global _active_dialog
+            parent.is_chat_dialog_open = False
+            parent.chat_dialog = None
+            _active_dialog = None
+            # Call callback to continue state machine
+            callback()
+            
+        _active_dialog.dialog_closed.connect(on_dialog_closed)
+        
+        # Show dialog near pet
+        _active_dialog.show_dialog(
+            pet_pos.x(),
+            pet_pos.y(),
+            pet_size.width(),
+            pet_size.height()
+        )
 
-        sleep_duration_timer = QTimer(parent)
-        sleep_duration_timer.setSingleShot(True)
-        self.active_timers.append(sleep_duration_timer)
-        sleep_duration_timer.timeout.connect(callback)
-        sleep_duration_timer.start(5000)
-
-    coding_duration_timer.timeout.connect(after_initial_timer)
-    coding_duration_timer.start(6000)
+    coding_duration_timer.timeout.connect(show_chat_dialog)
+    coding_duration_timer.start(1000)  # Show dialog after 1 second
 
 
 def runterminal(self, command="echo Hello, Terminal!"):
+    """Legacy terminal function - kept for compatibility."""
     try:
         script = f"""
         tell application \"Terminal\"
@@ -60,6 +94,7 @@ def runterminal(self, command="echo Hello, Terminal!"):
 
 
 def showtxt(self):
+    """Legacy text function - kept for compatibility."""
     desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
     file_path = os.path.join(desktop_path, "example.txt")
     txt_content = "Hello, what are you doing?"

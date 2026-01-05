@@ -109,6 +109,11 @@ class MainMenuWindow(QMainWindow):
 
     def activate_toolbar_pet(self):
         """Activate the pet to move in the macOS toolbar."""
+        # Check if chat dialog is open
+        if self.parent_app.is_chat_dialog_open:
+            from PyQt5.QtWidgets import QMessageBox
+            QMessageBox.information(self, "提示", "请先结束对话喵～")
+            return
         print("Activating pet in the toolbar...")
         self.parent_app.activate_toolbar_pet()
 
@@ -133,6 +138,12 @@ class MainMenuWindow(QMainWindow):
     # 测试测试测试测试测试
     def open_test_dialog(self):
         """Open a dialog to input Room Number and User ID for testing."""
+        # Check if chat dialog is open
+        if self.parent_app.is_chat_dialog_open:
+            from PyQt5.QtWidgets import QMessageBox
+            QMessageBox.information(self, "提示", "请先结束对话喵～")
+            return
+            
         dialog = QDialog(self)
         dialog.setWindowTitle("Test Room")
 

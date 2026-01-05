@@ -52,6 +52,10 @@ class PetApp(QMainWindow):
         self.pet_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         self.toolbar_icon = None
 
+        # Chat dialog state management
+        self.is_chat_dialog_open = False
+        self.chat_dialog = None
+
         # Room connection management
         self.room_thread = None
         self.room_stop_event = None
