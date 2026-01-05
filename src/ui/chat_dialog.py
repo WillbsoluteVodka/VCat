@@ -177,6 +177,27 @@ class ChatDialog(QWidget):
         input_layout = QHBoxLayout()
         input_layout.setSpacing(8)
         
+        # Voice input button
+        self.voice_btn = QPushButton("🎤")
+        self.voice_btn.setFixedSize(36, 36)
+        self.voice_btn.setFont(QFont("Apple Color Emoji", 14))
+        self.voice_btn.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(255, 255, 255, 0.1);
+                color: white;
+                border: none;
+                border-radius: 18px;
+            }
+            QPushButton:hover {
+                background-color: rgba(255, 255, 255, 0.2);
+            }
+            QPushButton:pressed {
+                background-color: #FF3B30;
+            }
+        """)
+        self.voice_btn.setToolTip("点击开始/停止语音输入 (英文)")
+        self.voice_btn.clicked.connect(self.toggle_voice_input)
+        
         self.input_field = QLineEdit()
         self.input_field.setPlaceholderText("跟小猫说点什么喵～")
         self.input_field.setFont(QFont("PingFang SC", 13))
@@ -210,12 +231,17 @@ class ChatDialog(QWidget):
         """)
         send_btn.clicked.connect(self.send_message)
         
+        input_layout.addWidget(self.voice_btn)
         input_layout.addWidget(self.input_field)
         input_layout.addWidget(send_btn)
         
         container_layout.addLayout(input_layout)
         
         main_layout.addWidget(self.container)
+        
+        # Initialize voice recognizer (lazy load)
+        self.voice_recognizer = None
+        self.is_voice_active = False
         
         # Show initial greeting
         self.add_cat_greeting()
@@ -225,6 +251,47 @@ class ChatDialog(QWidget):
         greeting = "主人好喵～有什么想跟我说的喵？"
         bubble = MessageBubble(greeting, is_user=False)
         self.messages_layout.addWidget(bubble)
+    
+    def toggle_voice_input(self):
+        """Toggle voice input on/off with single click."""
+        # TODO: 语音输入功能待实现，计划使用 Whisper 模型
+        # 暂时只显示提示，不实际启动任何功能
+        self.input_field.setPlaceholderText("🌙 语音输入开发中喵～")
+        # 重新聚焦输入框，确保可以继续输入
+        self.input_field.setFocus()
+        
+    def _reset_voice_button(self):
+        """Reset voice button to default state."""
+        self.voice_btn.setText("🎤")
+        self.voice_btn.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(255, 255, 255, 0.1);
+                color: white;
+                border: none;
+                border-radius: 18px;
+            }
+            QPushButton:hover {
+                background-color: rgba(255, 255, 255, 0.2);
+            }
+        """)
+            
+    def stop_voice_input(self):
+        """Stop macOS Dictation."""
+        if not self.is_voice_active:
+            return
+            
+        try:
+            if self.voice_recognizer:
+                self.voice_recognizer.stop()
+            
+            # Reset button style
+            self._reset_voice_button()
+            
+            self.is_voice_active = False
+            self.input_field.setPlaceholderText("跟小猫说点什么喵～")
+            
+        except Exception as e:
+            print(f"Failed to stop dictation: {e}")
         
     def send_message(self):
         """Handle sending a message."""
@@ -264,6 +331,10 @@ class ChatDialog(QWidget):
         if self.position_timer:
             self.position_timer.stop()
             self.position_timer = None
+        # Stop voice recognizer
+        if self.voice_recognizer:
+            self.voice_recognizer.stop()
+            self.voice_recognizer = None
         self.chat_handler.clear_history()
         self.dialog_closed.emit()
         self.close()

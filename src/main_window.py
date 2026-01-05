@@ -55,6 +55,10 @@ class PetApp(QMainWindow):
         # Chat dialog state management
         self.is_chat_dialog_open = False
         self.chat_dialog = None
+        
+        # Voice wake-up recognizer (listens for "Hey Kitty" etc.)
+        self.voice_wake_recognizer = None
+        self._init_voice_wake_up()
 
         # Room connection management
         self.room_thread = None
@@ -83,6 +87,32 @@ class PetApp(QMainWindow):
         screen_height = screen_geometry.height()
         self.resize(screen_width - 100, screen_height - 100)
 
+    def _init_voice_wake_up(self):
+        """Initialize voice wake-up listener for 'Hey Cat' etc."""
+        try:
+            from src.chat.voice import VoiceRecognizer
+            self.voice_wake_recognizer = VoiceRecognizer(self)
+            self.voice_wake_recognizer.wake_word_detected.connect(self._on_voice_wake)
+            self.voice_wake_recognizer.start()
+            print("[VCat] Voice wake-up enabled. Say 'Hey Cat' to start a conversation.")
+        except Exception as e:
+            print(f"[VCat] Voice wake-up not available: {e}")
+            self.voice_wake_recognizer = None
+    
+    def _on_voice_wake(self):
+        """Handle voice wake word detection - trigger chat dialog."""
+        print("[VCat] Wake word detected! Opening chat dialog...")
+        # Trigger CODING state which opens the chat dialog
+        if not self.is_chat_dialog_open and self.pet_behavior:
+            # Stop current behavior and force immediate CODING state
+            self.pet_behavior.stop_all_timers()
+            self.pet_behavior.set_state(PetActions.CODING)
+            # Immediately perform the CODING action
+            self.pet_behavior.perform_action(
+                self, 
+                lambda: self.behavior_manager.advance_state(self.pet_behavior)
+            )
+    
     def activate_toolbar_pet(self):
         """Create the moving pet icon in the toolbar and hide the desktop pet."""
         if not self.toolbar_icon:
@@ -690,6 +720,11 @@ class PetApp(QMainWindow):
     
     def closeEvent(self, event):
         """Handle application shutdown"""
+        # Stop voice wake recognizer
+        if self.voice_wake_recognizer:
+            self.voice_wake_recognizer.stop()
+            self.voice_wake_recognizer = None
+        
         # Disconnect from room if connected
         if self.room_thread and self.room_thread.is_alive():
             print("[TELEPORT] Cleaning up room connection...")

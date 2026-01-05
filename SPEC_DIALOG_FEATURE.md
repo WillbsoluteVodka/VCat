@@ -149,10 +149,38 @@
 
 ### 语音识别技术选型
 
-| 阶段 | 方案 | 说明 |
+| 功能 | 方案 | 说明 |
 |------|------|------|
-| Phase 3 | NSSpeechRecognizer (macOS 系统级) | 免费、离线、低延迟，仅支持英文 |
-| Future | Whisper / 云端 API | 多语言、高准确率 |
+| 语音唤醒 | NSSpeechRecognizer | 仅监听 "Hey Cat" 等预定义唤醒词，英文 |
+| 语音输入 | macOS Dictation | 系统听写功能，支持多语言，通过模拟 Fn+Fn 触发 |
+| Future | Whisper 本地模型 | 离线语音转文字，支持中英文，高准确率 |
+
+### 语音功能架构
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    VoiceRecognizer                       │
+│            (NSSpeechRecognizer - 唤醒词监听)              │
+│         监听: "Hey Cat", "Hey Kitty", "Cat" 等           │
+│                        │                                 │
+│                        ▼                                 │
+│              wake_word_detected 信号                     │
+│                        │                                 │
+│                        ▼                                 │
+│              触发 CODING 状态 → 打开对话框                │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│                   MacOSDictation                         │
+│              (macOS 系统听写 - 语音输入)                  │
+│           通过模拟 Fn+Fn 键盘快捷键触发                   │
+│                        │                                 │
+│                        ▼                                 │
+│           文字直接输入到 QLineEdit 输入框                 │
+│                                                          │
+│  ⚠️ 要求: 系统设置 → 键盘 → 听写 已启用                   │
+└─────────────────────────────────────────────────────────┘
+```
 
 ### 对话框实现
 
@@ -188,35 +216,80 @@ src/
 
 ## 📅 开发计划
 
-| 阶段 | 内容 | 预估工作量 | 依赖 |
-|------|------|-----------|------|
-| **Phase 1** | 基础对话框 UI + 文字输入 + hardcode 回复 | 2-3 天 | 无 |
-| **Phase 2** | 气泡跟随猫咪位置 | 1-2 天 | Phase 1 |
-| **Phase 3** | 语音唤醒 + 语音输入 (NSSpeechRecognizer) | 2-3 天 | Phase 2 |
-| **Phase 4** | 毛玻璃效果优化 (NSVisualEffectView) | 1-2 天 | Phase 1 |
-| **Phase 5** | 接入 AI（GPT/Claude API） | 1-2 天 | Phase 1 |
+| 阶段 | 内容 | 预估工作量 | 依赖 | 状态 |
+|------|------|-----------|------|------|
+| **Phase 1** | 基础对话框 UI + 文字输入 + hardcode 回复 | 2-3 天 | 无 | ✅ 完成 |
+| **Phase 2** | 气泡跟随猫咪位置 | 1-2 天 | Phase 1 | ✅ 完成 |
+| **Phase 3** | 语音唤醒 + 语音输入 | 2-3 天 | Phase 2 | ✅ 完成 |
+| **Phase 4** | 毛玻璃效果优化 (NSVisualEffectView) | 1-2 天 | Phase 1 | ⏳ 待开始 |
+| **Phase 5** | 接入 AI（GPT/Claude API） | 1-2 天 | Phase 1 | ⏳ 待开始 |
+| **Future** | Whisper 本地语音识别 | TBD | Phase 3 | 📋 规划中 |
 
-### Phase 1 详细任务
+### Phase 1 详细任务 ✅
 
-- [ ] 创建 `ChatDialog` 类 (QWidget)
-- [ ] 实现聊天历史滚动区域
-- [ ] 实现输入框 + 发送按钮
-- [ ] 实现关闭按钮
-- [ ] 创建 `ChatHandler` 类
-- [ ] 实现 hardcode 指令匹配
-- [ ] 实现猫咪风格回复生成
-- [ ] 修改 `pet_code.py` 调用新对话框
-- [ ] 实现对话框打开时阻止其他操作
-- [ ] 实现对话框关闭后恢复状态机
+- [x] 创建 `ChatDialog` 类 (QWidget)
+- [x] 实现聊天历史滚动区域
+- [x] 实现输入框 + 发送按钮
+- [x] 实现关闭按钮
+- [x] 创建 `ChatHandler` 类
+- [x] 实现 hardcode 指令匹配
+- [x] 实现猫咪风格回复生成
+- [x] 修改 `pet_code.py` 调用新对话框
+- [x] 实现对话框打开时阻止其他操作
+- [x] 实现对话框关闭后恢复状态机
+
+### Phase 2 详细任务 ✅
+
+- [x] ChatDialog 接收 pet_label 引用
+- [x] 添加位置追踪定时器 (50ms 更新)
+- [x] 对话框实时跟随猫咪位置
+- [x] 关闭对话框时停止定时器
+- [ ] 等待 ld 实现拖拽功能后进行完整测试
+
+### Phase 3 详细任务 ✅
+
+**语音输入 (TODO - 待 Whisper 实现)**
+- [ ] macOS Dictation 触发不稳定，暂时禁用
+- [ ] 计划使用 Whisper 本地模型实现语音转文字
+- [ ] 语音按钮 UI 已就绪，待后端实现
+
+**语音唤醒 (NSSpeechRecognizer) ✅**
+- [x] 创建 VoiceRecognizer 类 - 仅监听唤醒词
+- [x] 唤醒词列表: "Hey Cat", "Hey Kitty", "Cat", "Kitty" 等
+- [x] main_window.py 集成全局唤醒监听
+- [x] 唤醒后立即触发 CODING 状态
+- [x] setListensInForegroundOnly_(False) 允许后台监听
+- ⚠️ 注意: 系统会显示语音识别反馈图标，这是 macOS 的设计，无法隐藏
+
+**⚠️ 使用说明**：
+- 语音唤醒: 随时说 "Hey Cat" 打开对话框（需要安静环境）
+- 语音输入: 点击 🎤 按钮后说话，文字会输入到输入框（需要启用系统听写）
+- 系统听写设置: 系统设置 → 键盘 → 听写 → 启用
+
+### Future: Whisper 本地语音识别 📋
+
+**计划功能**：
+- 使用 OpenAI Whisper 本地模型进行真正的语音转文字
+- 支持中英文混合识别
+- 离线运行，无需网络
+- 高准确率，支持自由对话
+
+**技术选型**：
+- `openai-whisper` Python 包
+- 或 `whisper.cpp` 本地推理
+- 模型大小: tiny (39M) / base (74M) / small (244M)
+
+**预计工作量**: 2-3 天
 
 ---
 
 ## ⚠️ 注意事项
 
-1. **对话框必须置顶**：使用 `Qt.WindowStaysOnTopHint`
-2. **点击穿透问题**：对话框区域需要能接收鼠标事件，不能设置 `WindowTransparentForInput`
+1. **对话框必须置顶**：使用 `Qt.WindowStaysOnTopHint` + `Qt.WindowDoesNotAcceptFocus`
+2. **不抢焦点**：使用 `Qt.WA_ShowWithoutActivating` 避免点击其他应用时对话框消失
 3. **多屏幕支持**：对话框位置计算需要考虑猫咪所在的屏幕
 4. **状态锁定**：对话框打开时，`BehaviorManager` 需要暂停状态转换
+5. **系统听写权限**：需要用户在系统设置中启用听写功能
 
 ---
 
