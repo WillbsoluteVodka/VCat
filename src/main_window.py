@@ -5,7 +5,7 @@ import threading
 import time
 
 from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow
-from PyQt5.QtCore import QTimer, Qt, QPoint, QElapsedTimer, QPropertyAnimation, QMetaObject, Q_ARG
+from PyQt5.QtCore import QTimer, Qt, QPoint, QElapsedTimer, QPropertyAnimation, QMetaObject, Q_ARG, pyqtSlot
 from PyQt5.QtGui import QPixmap, QMovie
 
 import os
@@ -309,6 +309,7 @@ class PetApp(QMainWindow):
         self.pet_teleported = False
         print("✅ 宠物已召回并恢复行动")
     
+    @pyqtSlot(int, str, str)
     def spawn_remote_pet(self, user_id, pet_kind, pet_color):
         """Spawn a remote user's pet through portal animation (holder side)"""
         if user_id in self.remote_pets:
@@ -440,9 +441,16 @@ class PetApp(QMainWindow):
                     for member in members:
                         user_id = member['user_id']
                         if not member['is_holder'] and user_id not in self.remote_pets:
-                            # New member - spawn their pet
+                            # New member - spawn their pet (must call from main thread)
                             print(f"🌀 为新成员 User {user_id} 生成宠物...")
-                            self.spawn_remote_pet(user_id, member['pet_kind'], member['pet_color'])
+                            QMetaObject.invokeMethod(
+                                self,
+                                "spawn_remote_pet",
+                                Qt.QueuedConnection,
+                                Q_ARG(int, user_id),
+                                Q_ARG(str, member['pet_kind']),
+                                Q_ARG(str, member['pet_color'])
+                            )
             
             elif event_type == 'member_joined':
                 print(f"🔔 新成员加入: User {data['user_id']}")
