@@ -292,6 +292,7 @@ class PetApp(QMainWindow):
         # Use the pet_move_to_portal action
         self.pet_behavior.pet_move_to_portal(self, on_portal_complete)
     
+    @pyqtSlot()
     def recall_pet_from_portal(self):
         """Recall pet from portal (when leaving room or room closed)"""
         if not hasattr(self, 'pet_teleported') or not self.pet_teleported:
@@ -395,6 +396,82 @@ class PetApp(QMainWindow):
         spawn_timer.timeout.connect(show_pet_from_portal)
         spawn_timer.start(500)  # Show portal for 500ms before pet emerges
     
+    @pyqtSlot(int)
+    def despawn_remote_pet(self, user_id):
+        """Remove a remote user's pet with portal animation (holder side)"""
+        if user_id not in self.remote_pets:
+            print(f"⚠️ User {user_id} 的宠物不存在")
+            return
+        
+        remote_pet_info = self.remote_pets[user_id]
+        remote_pet_behavior = remote_pet_info['behavior']
+        remote_pet_label = remote_pet_info['label']
+        pet_kind = remote_pet_info['pet_kind']
+        pet_color = remote_pet_info['pet_color']
+        
+        # Pause pet behavior
+        remote_pet_behavior.pause()
+        
+        # Get current pet position for portal
+        pet_x = remote_pet_label.x() + remote_pet_label.width() // 2
+        pet_y = remote_pet_label.y() + remote_pet_label.height() // 2
+        
+        # Create portal at pet's position
+        screen = QApplication.primaryScreen().availableGeometry()
+        portal = QLabel(self)
+        portal.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        portal.setAttribute(Qt.WA_TranslucentBackground)
+        portal_pixmap = QPixmap(resource_path("src/icon/portal.png"))
+        portal.setPixmap(portal_pixmap)
+        portal.setScaledContents(True)
+        
+        portal_size = int(screen.width() * 0.1)
+        portal.resize(portal_size, portal_size)
+        portal.move(pet_x - portal_size // 2, pet_y - portal_size // 2)
+        portal.lower()
+        portal.show()
+        
+        print(f"🌀 User {user_id} 的宠物正在返回...")
+        
+        # Play start_move_portal animation (pet entering portal)
+        start_movie = QMovie(resource_path(load_pet_data(pet_kind, pet_color, "start_move_portal")))
+        remote_pet_label.setMovie(start_movie)
+        remote_pet_label.setScaledContents(True)
+        start_movie.start()
+        
+        def hide_pet_and_portal():
+            # Hide pet
+            remote_pet_label.hide()
+            
+            def cleanup():
+                try:
+                    start_movie.stop()
+                except Exception:
+                    pass
+                
+                # Hide portal
+                portal.hide()
+                portal.deleteLater()
+                
+                # Remove pet from behavior manager and cleanup
+                if hasattr(self.behavior_manager, 'pets') and f"RemotePet_{user_id}" in self.behavior_manager.pets:
+                    del self.behavior_manager.pets[f"RemotePet_{user_id}"]
+                
+                remote_pet_label.deleteLater()
+                del self.remote_pets[user_id]
+                print(f"✅ User {user_id} 的宠物已移除")
+            
+            cleanup_timer = QTimer(self)
+            cleanup_timer.setSingleShot(True)
+            cleanup_timer.timeout.connect(cleanup)
+            cleanup_timer.start(500)  # Wait for portal visibility
+        
+        # Wait for animation to finish before hiding
+        hide_timer = QTimer(self)
+        hide_timer.setSingleShot(True)
+        hide_timer.timeout.connect(hide_pet_and_portal)
+        hide_timer.start(1000)  # 1 second for start_move_portal animation
+    
     def connect_to_room(self, room_id, user_id):
         """Connect to a room (called from menu)"""
         # Stop existing connection if any
@@ -410,6 +487,16 @@ class PetApp(QMainWindow):
         # Check if room exists first to determine if user will be holder
         from supabase import create_client
         supabase_sync = create_client(supabase_url, supabase_key)
+        
+        # Update user's current pet in database before joining
+        user_pet_data = {
+            'user_num': user_id,
+            'pet_kind': self.pet_kind,
+            'pet_color': self.pet_color
+        }
+        supabase_sync.table('user_cur_pet').upsert(user_pet_data).execute()
+        print(f"📝 更新用户 {user_id} 的宠物信息: {self.pet_kind} - {self.pet_color}")
+        
         room_check = supabase_sync.table("pet_rooms").select("*").eq("room_id", room_id).execute()
         
         will_be_holder = not room_check.data  # If room doesn't exist, user will be holder
@@ -462,6 +549,16 @@ class PetApp(QMainWindow):
             
             elif event_type == 'member_left':
                 print(f"🔔 成员离开: User {data['user_id']}")
+                # Remove remote pet if holder
+                if self.is_room_holder:
+                    user_id = data['user_id']
+                    if user_id in self.remote_pets:
+                        QMetaObject.invokeMethod(
+                            self,
+                            "despawn_remote_pet",
+                            Qt.QueuedConnection,
+                            Q_ARG(int, user_id)
+                        )
             
             elif event_type == 'room_closed':
                 print(f"🚪 房间已关闭: {data.get('message', '未知原因')}")
