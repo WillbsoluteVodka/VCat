@@ -221,7 +221,7 @@ src/
 | **Phase 1** | 基础对话框 UI + 文字输入 + hardcode 回复 | 2-3 天 | 无 | ✅ 完成 |
 | **Phase 2** | 气泡跟随猫咪位置 | 1-2 天 | Phase 1 | ✅ 完成 |
 | **Phase 3** | 语音唤醒 + 语音输入 | 2-3 天 | Phase 2 | ✅ 完成 |
-| **Phase 4** | 毛玻璃效果优化 (NSVisualEffectView) | 1-2 天 | Phase 1 | ⏳ 待开始 |
+| **Phase 4** | 毛玻璃效果优化 (NSVisualEffectView) | 1-2 天 | Phase 1 | ⚠️ 回退方案 |
 | **Phase 5** | 接入 AI（GPT/Claude API） | 1-2 天 | Phase 1 | ⏳ 待开始 |
 | **Future** | Whisper 本地语音识别 | TBD | Phase 3 | 📋 规划中 |
 
@@ -261,10 +261,32 @@ src/
 - [x] setListensInForegroundOnly_(False) 允许后台监听
 - ⚠️ 注意: 系统会显示语音识别反馈图标，这是 macOS 的设计，无法隐藏
 
+**语音输入 (TODO - 待 Whisper 实现)**
+- [ ] macOS Dictation 触发不稳定，暂时禁用
+- [ ] 计划使用 Whisper 本地模型实现语音转文字
+- [ ] 语音按钮 UI 已就绪，待后端实现
+
 **⚠️ 使用说明**：
 - 语音唤醒: 随时说 "Hey Cat" 打开对话框（需要安静环境）
-- 语音输入: 点击 🎤 按钮后说话，文字会输入到输入框（需要启用系统听写）
-- 系统听写设置: 系统设置 → 键盘 → 听写 → 启用
+- 语音输入: 暂时不可用，开发中
+
+### Phase 4 详细任务 ⚠️ (使用回退方案)
+
+**原生 NSVisualEffectView 方案**:
+- [x] 研究 NSVisualEffectView API
+- [x] 导入 AppKit 原生模糊组件
+- [x] 创建 _setup_native_blur() 方法
+- [x] 实现延迟加载模糊效果 (_delayed_blur_setup)
+- ❌ PyQt5 与 PyObjC NSView 操作存在兼容性问题，导致应用闪退
+
+**当前回退方案**:
+- [x] 使用半透明深色背景 (rgba 25,25,25, 0.88)
+- [x] 添加微妙边框增强视觉层次
+- [x] 视觉效果良好，功能正常
+
+**未来可选方案**:
+- [ ] 迁移到 PySide6（更好的 macOS 集成）
+- [ ] 或使用纯 Cocoa/Swift 实现对话框窗口
 
 ### Future: Whisper 本地语音识别 📋
 

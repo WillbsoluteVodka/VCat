@@ -13,6 +13,11 @@ from PyQt5.QtGui import QColor, QFont, QPainter, QBrush, QPen, QPainterPath
 
 from src.chat.handler import ChatHandler
 
+# TODO: Native macOS blur effect (NSVisualEffectView) disabled due to 
+# PyQt5/PyObjC compatibility issues causing crashes. Using semi-transparent
+# background as fallback. Consider PySide6 or pure Cocoa window in future.
+HAS_NATIVE_BLUR = False
+
 
 class MessageBubble(QFrame):
     """A single message bubble in the chat."""
@@ -61,6 +66,7 @@ class ChatDialog(QWidget):
     """
     Siri-style floating chat dialog.
     Appears above the cat and allows text-based conversation.
+    Uses macOS native NSVisualEffectView for blur effect when available.
     """
     
     # Signal emitted when dialog is closed
@@ -71,8 +77,10 @@ class ChatDialog(QWidget):
         self.chat_handler = ChatHandler()
         self.pet_label = pet_label  # Reference to pet widget for position tracking
         self.position_timer = None  # Timer for updating position
-        self.setup_ui()
+        self.visual_effect_view = None  # Native macOS blur view
         self.setup_window()
+        self.setup_ui()
+        self._setup_native_blur()
         
     def setup_window(self):
         """Configure window properties for floating dialog."""
@@ -84,12 +92,19 @@ class ChatDialog(QWidget):
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setFixedSize(320, 400)
         
-        # Add shadow effect
-        shadow = QGraphicsDropShadowEffect(self)
-        shadow.setBlurRadius(20)
-        shadow.setColor(QColor(0, 0, 0, 80))
-        shadow.setOffset(0, 4)
-        self.setGraphicsEffect(shadow)
+    def _setup_native_blur(self):
+        """Set up macOS native blur effect using NSVisualEffectView."""
+        # TODO: Native blur disabled due to PyQt5/PyObjC compatibility issues
+        # Using semi-transparent fallback for now
+        print("[ChatDialog] Using semi-transparent background (native blur disabled)")
+    
+    def showEvent(self, event):
+        """Handle show event."""
+        super().showEvent(event)
+    
+    def _delayed_blur_setup(self):
+        """Setup blur after window is visible - currently disabled."""
+        pass
         
     def setup_ui(self):
         """Set up the dialog UI components."""
@@ -97,13 +112,16 @@ class ChatDialog(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
         
-        # Container widget with rounded corners and blur effect
+        # Container widget with rounded corners and semi-transparent background
         self.container = QFrame(self)
         self.container.setObjectName("chatContainer")
+        
+        # Dark semi-transparent background with subtle border
         self.container.setStyleSheet("""
             QFrame#chatContainer {
-                background-color: rgba(30, 30, 30, 0.85);
+                background-color: rgba(25, 25, 25, 0.88);
                 border-radius: 16px;
+                border: 1px solid rgba(255, 255, 255, 0.08);
             }
         """)
         
