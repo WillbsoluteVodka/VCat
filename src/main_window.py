@@ -6,15 +6,13 @@ import time
 
 from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow
 from PyQt5.QtCore import QTimer, Qt, QPoint, QElapsedTimer, QPropertyAnimation, QMetaObject, Q_ARG, pyqtSlot
-from PyQt5.QtGui import QPixmap, QMovie
+from PyQt5.QtGui import QPixmap, QMovie, QPainter, QCursor
 
 import os
 import random
 # NOTE: Non-essential modules (menus, networking, toolbar, health) are commented out
 # while we keep only the pet and pet_actions for a minimal runnable state.
 from menu_bar import MainMenuWindow
-from PyQt5.QtGui import QCursor
-
 
 # Use PetActions from legacy behavior package (keep one import path to avoid duplicate enums)
 from behavior.pet_actions import PetActions
@@ -78,11 +76,47 @@ class PetApp(QMainWindow):
         # Set up window
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowTransparentForInput)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        screen_geometry = QApplication.primaryScreen().availableGeometry()
+        self.setAttribute(Qt.WA_NoSystemBackground, True)
+        self.setAutoFillBackground(False)
+        self._screen_hooked = False
+        self._sync_window_to_screen()
+
+    def _get_target_screen(self):
+        handle = self.windowHandle()
+        if handle and handle.screen():
+            return handle.screen()
+        screen = QApplication.screenAt(QCursor.pos())
+        if screen:
+            return screen
+        return QApplication.primaryScreen()
+
+    def _sync_window_to_screen(self):
+        screen = self._get_target_screen()
+        if not screen:
+            return
+        screen_geometry = screen.availableGeometry()
         screen_width = screen_geometry.width()
         screen_height = screen_geometry.height()
-        self.resize(screen_width - 100, screen_height - 100)
+        self.resize(max(200, screen_width - 100), max(200, screen_height - 100))
         self.move(screen_geometry.topLeft())
+        self.update()
+
+    def _on_screen_changed(self, screen):
+        self._sync_window_to_screen()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._sync_window_to_screen()
+        handle = self.windowHandle()
+        if handle and not self._screen_hooked:
+            handle.screenChanged.connect(self._on_screen_changed)
+            self._screen_hooked = True
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setCompositionMode(QPainter.CompositionMode_Source)
+        painter.fillRect(event.rect(), Qt.transparent)
+        painter.end()
 
     def _init_global_hotkey(self):
         """Initialize global hotkey (Cmd+Shift+C) for opening chat."""
@@ -280,10 +314,11 @@ class PetApp(QMainWindow):
 
         # Set up the initial position of the pet
         pet_behavior.resize_pet_label(self)
-        # Calculate screen center
-        screen_geometry = QApplication.primaryScreen().availableGeometry()
-        pet_label.move(screen_geometry.width() // 2,
-                       screen_geometry.height() // 2)
+        # Center within the parent window
+        pet_label.move(
+            max(0, (self.width() - pet_label.width()) // 2),
+            max(0, (self.height() - pet_label.height()) // 2)
+        )
         pet_label.show()
 
         # Store the pet's behavior and name
@@ -349,10 +384,9 @@ class PetApp(QMainWindow):
         
         print("[TELEPORT] Retrieving pet from portal...")
         
-        # Create portal at screen center
-        screen = QApplication.primaryScreen().availableGeometry()
-        portal_center_x = screen.width() // 2
-        portal_center_y = screen.height() // 2
+        # Create portal at window center
+        portal_center_x = self.width() // 2
+        portal_center_y = self.height() // 2
         
         portal = QLabel(self)
         portal.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
@@ -361,15 +395,15 @@ class PetApp(QMainWindow):
         portal.setPixmap(portal_pixmap)
         portal.setScaledContents(True)
         
-        portal_size = int(screen.width() * 0.1)
+        portal_size = int(self.width() * 0.1)
         portal.resize(portal_size, portal_size)
         portal.move(portal_center_x - portal_size // 2, portal_center_y - portal_size // 2)
         portal.lower()
         portal.show()
         
         # Position pet at center (initially hidden)
-        center_x = (screen.width() - self.pet_label.width()) // 2
-        center_y = (screen.height() - self.pet_label.height()) // 2
+        center_x = (self.width() - self.pet_label.width()) // 2
+        center_y = (self.height() - self.pet_label.height()) // 2
         self.pet_label.move(center_x, center_y)
         
         # After portal shows for a moment, play end_move_portal animation (pet emerging)
@@ -412,10 +446,9 @@ class PetApp(QMainWindow):
             print(f"[TELEPORT] Warning: User {user_id}'s pet already exists")
             return
         
-        # Create portal at screen center
-        screen = QApplication.primaryScreen().availableGeometry()
-        portal_center_x = screen.width() // 2
-        portal_center_y = screen.height() // 2
+        # Create portal at window center
+        portal_center_x = self.width() // 2
+        portal_center_y = self.height() // 2
         
         portal = QLabel(self)
         portal.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
@@ -424,7 +457,7 @@ class PetApp(QMainWindow):
         portal.setPixmap(portal_pixmap)
         portal.setScaledContents(True)
         
-        portal_size = int(screen.width() * 0.1)
+        portal_size = int(self.width() * 0.1)
         portal.resize(portal_size, portal_size)
         portal.move(portal_center_x - portal_size // 2, portal_center_y - portal_size // 2)
         portal.lower()
@@ -512,7 +545,7 @@ class PetApp(QMainWindow):
         pet_y = remote_pet_label.y() + remote_pet_label.height() // 2
         
         # Create portal at pet's position
-        screen = QApplication.primaryScreen().availableGeometry()
+        screen_width = self.width()
         portal = QLabel(self)
         portal.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         portal.setAttribute(Qt.WA_TranslucentBackground)
@@ -520,7 +553,7 @@ class PetApp(QMainWindow):
         portal.setPixmap(portal_pixmap)
         portal.setScaledContents(True)
         
-        portal_size = int(screen.width() * 0.1)
+        portal_size = int(screen_width * 0.1)
         portal.resize(portal_size, portal_size)
         portal.move(pet_x - portal_size // 2, pet_y - portal_size // 2)
         portal.lower()
