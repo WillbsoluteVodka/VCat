@@ -45,7 +45,7 @@ class PetApp(QMainWindow):
         self.pet_size_ratio = 0.3
 
         self.pet_kind, self.pet_color = get_current_pet()
-        self.pet_behavior, self.pet_label = self.add_pet("Cat1", self.pet_kind, self.pet_color)
+        self.pet_behavior, self.pet_label = self.add_pet("超级大恐龙", self.pet_kind, self.pet_color)
         self.pet_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         self.toolbar_icon = None
 
@@ -314,6 +314,10 @@ class PetApp(QMainWindow):
             max(0, (self.width() - pet_label.width()) // 2),
             max(0, (self.height() - pet_label.height()) // 2)
         )
+        
+        # Create name label as child of pet label
+        pet_label.create_name_label(pet_name)
+        
         pet_label.show()
 
         # Store the pet's behavior and name
