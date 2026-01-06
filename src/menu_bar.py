@@ -81,14 +81,6 @@ class MainMenuWindow(QMainWindow):
         go_down_action.triggered.connect(self.deactivate_toolbar_pet)
         pet_setting_menu.addAction(go_down_action)
 
-        # Shop Menu
-        shop_menu = menubar.addMenu("Shop")
-
-        # Shop action
-        shop_action = QAction("Open Shop", self)
-        shop_action.triggered.connect(self.open_shop_window)
-        shop_menu.addAction(shop_action)
-
     # 测试测试测试测试测试
         # Test Menu
         test_menu = menubar.addMenu("Test")
@@ -131,11 +123,6 @@ class MainMenuWindow(QMainWindow):
     def decrease_pet_size(self):
         """Decrease the pet size by 0.02."""
         self.parent_app.decrease_pet_size()
-        
-    def open_shop_window(self):
-        """Open the shop window with product categories."""
-        dialog = ShopWindow(self.parent_app)
-        dialog.exec_()
     
     # 测试测试测试测试测试
     def open_test_dialog(self):
@@ -215,7 +202,7 @@ class MainMenuWindow(QMainWindow):
         dialog.exec_()
 
 
-class ShopWindow(QDialog):
+class PetSettingDialog(QDialog):
     """Window to display shop items categorized into food, toys, and magical products."""
     def __init__(self, parent_app):
         super().__init__()
@@ -225,236 +212,6 @@ class ShopWindow(QDialog):
 
         # Dialog layout
         layout = QVBoxLayout(self)
-
-        # Tab widget for categories
-        tabs = QTabWidget(self)
-        layout.addWidget(tabs)
-
-        # Define categories and their items
-        categories = {
-            "Food": ["Apple", "Fish", "Meat"],
-            "Toys": ["Ball", "Feather"],
-            "Magic": []
-        }
-
-        # Create tabs dynamically
-        for category, items in categories.items():
-            tab = QWidget()
-            tab_layout = QGridLayout(tab)
-            tab_layout.setSpacing(20)
-
-            for idx, item in enumerate(items):
-                card = self.create_item_card(item)
-                row = idx // 3
-                col = idx % 3
-                tab_layout.addWidget(card, row, col)
-
-            tabs.addTab(tab, category)
-
-        # Close button
-        close_button = QPushButton("Close", self)
-        close_button.clicked.connect(self.close)
-        layout.addWidget(close_button)
-
-    def create_item_card(self, item_name):
-        """Create a visually appealing item card with an image and a clickable area."""
-        card = QFrame(self)
-        card.setFrameShape(QFrame.StyledPanel)
-        card.setStyleSheet("""
-            QFrame {
-                background-color: #f9f9f9;
-                border: 2px solid #ddd;
-                border-radius: 10px;
-                padding: 10px;
-            }
-            QFrame:hover {
-                background-color: #e6f7ff;
-                border: 2px solid #40a9ff;
-            }
-        """)
-
-        layout = QVBoxLayout(card)
-        layout.setAlignment(Qt.AlignCenter)
-
-        # Item image
-        screen_width = self.parent_app.width()
-        button_width = int(screen_width * 0.08)
-
-        item_image = QLabel(card)
-        item_image.setFixedSize(button_width, button_width)
-        item_image.setAlignment(Qt.AlignCenter)
-        item_image.setScaledContents(True)
-
-        # Load the item icon
-        icon_path = f"src/icon/{item_name}.png"
-        pixmap = QPixmap(icon_path)
-        item_image.setPixmap(pixmap)
-        self.active_images.append(item_image)
-
-        # Item name
-        item_label = QLabel(item_name)
-        item_label.setAlignment(Qt.AlignCenter)
-        item_label.setStyleSheet("font-weight: bold; color: #333;")
-
-        # Add components to the card
-        layout.addWidget(item_image)
-        layout.addWidget(item_label)
-
-        # Add click functionality
-        card.mousePressEvent = lambda event: self.purchase_item(item_name)
-
-        return card
-
-    def purchase_item(self, item_name):
-        """Handle item purchase logic."""
-        print(f"You selected {item_name}!")
-        self.parent_app.start_drag_food(item_name)
-        self.close()
-
-    def closeEvent(self, event):
-        """Ensure all resources are released when the shop window is closed."""
-        print("Shop window is closing. Cleaning up resources...")
-
-        # Clear all active QLabel pixmaps to release memory
-        for image_label in self.active_images:
-            image_label.clear()
-
-        self.active_images.clear()  # Clear the list of tracked images
-        super().closeEvent(event)
-    def __init__(self, parent_app):
-        super().__init__()
-        self.setWindowTitle("Shop")
-        self.parent_app = parent_app
-        self.active_images = []  # Track active QLabel pixmaps
-
-        # Set background image for the shop
-        self.setStyleSheet("""
-            QDialog {
-                background-image: url('icon/shop.png');
-                background-repeat: no-repeat;
-                background-position: center;
-                background-size: cover;
-            }
-            QLabel {
-                font-size: 14px;
-                color: white;  /* Adjust text color to ensure readability over the background */
-            }
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                border-radius: 5px;
-                padding: 5px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-        """)
-
-        # Layout for the shop window
-        main_layout = QVBoxLayout(self)
-
-        # Add a tab widget for categories
-        tab_widget = QTabWidget(self)
-        tab_widget.setStyleSheet("""
-            QTabBar::tab {
-                background: rgba(0, 0, 0, 0.7); /* Semi-transparent background for tabs */
-                padding: 8px;
-                font-size: 14px;
-                color: white;
-            }
-            QTabBar::tab:selected {
-                background: #4CAF50;
-                color: white;
-            }
-        """)
-
-        categories = {
-            "Food": ["Apple", "Fish", "Meat"],
-            "Toys": ["Ball", "Stick", "Puzzle"],
-            "Magical Items": ["Portal Key", "Time Crystal"]
-        }
-
-        # Add tabs for each category
-        for category, items in categories.items():
-            category_widget = QWidget()
-            category_layout = QGridLayout(category_widget)
-            category_layout.setSpacing(10)
-            category_layout.setContentsMargins(10, 10, 10, 10)
-
-            # Add items to the category
-            for index, item in enumerate(items):
-                item_card = self.create_item_card(item)
-                category_layout.addWidget(item_card, index // 3, index % 3)
-
-            tab_widget.addTab(category_widget, category)
-
-        main_layout.addWidget(tab_widget)
-
-        # Add close button
-        close_button = QPushButton("Close", self)
-        close_button.clicked.connect(self.close)
-        main_layout.addWidget(close_button)
-
-    def create_item_card(self, item_name):
-        """Create a visually appealing item card with an image and a clickable area."""
-        card = QFrame()
-        card.setFixedSize(150, 200)
-        card.setStyleSheet("""
-            QFrame {
-                background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white */
-                border: 1px solid #ddd;
-                border-radius: 8px;
-                padding: 10px;
-            }
-            QFrame:hover {
-                border: 2px solid #4CAF50;
-            }
-        """)
-
-        layout = QVBoxLayout(card)
-
-        # Item image
-        item_image = QLabel()
-        pixmap = QPixmap(f"icon/{item_name.lower()}.png").scaled(80, 80, Qt.KeepAspectRatio)
-        item_image.setPixmap(pixmap)
-        item_image.setAlignment(Qt.AlignCenter)
-        self.active_images.append(item_image)  # Track the image for cleanup
-
-        # Item name
-        item_label = QLabel(item_name)
-        item_label.setAlignment(Qt.AlignCenter)
-        item_label.setStyleSheet("font-weight: bold; color: #333;")
-
-        # Add components to the card
-        layout.addWidget(item_image)
-        layout.addWidget(item_label)
-
-        # Add click functionality
-        card.mousePressEvent = lambda event: self.purchase_item(item_name)
-
-        return card
-
-    def purchase_item(self, item_name):
-        """Handle item purchase logic."""
-        print(f"You selected {item_name}!")
-        self.parent_app.start_drag_food(item_name)
-        self.close()
-
-    def closeEvent(self, event):
-        """Ensure all resources are released when the shop window is closed."""
-        print("Shop window is closing. Cleaning up resources...")
-
-        # Clear all active QLabel pixmaps to release memory
-        for image_label in self.active_images:
-            image_label.clear()
-
-        self.active_images.clear()  # Clear the list of tracked images
-        super().closeEvent(event)
-
-
-
-
 
 class PetSettingDialog(QDialog):
     """Dialog for selecting pet kind and color."""
@@ -574,6 +331,6 @@ class PetSettingDialog(QDialog):
     def unlock_pet(self, kind, color):
         """Unlock the selected pet."""
         print(f"Unlocking pet: {kind} - {color}")
-        self.parent_app.health_bar.handle_lock_pet(False, kind, color)  # Call a method
+        # Health bar removed - unlock functionality disabled
         self.parent_app.pet_label.show()
         self.close()

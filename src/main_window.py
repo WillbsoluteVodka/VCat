@@ -23,7 +23,6 @@ from src.ui.pet_widget import PetWidget
 from behavior import BehaviorManager
 from src.communication import PortalClient, PortalServer
 from src.pet_data_loader import load_pet_data, get_current_pet  # keep data loader for resources
-from src.pet_health import HealthBar
 from src.toolbar_pet import MacOSToolbarIcon
 
 
@@ -75,17 +74,6 @@ class PetApp(QMainWindow):
         self.is_room_holder = False
         self.room_worker = None  # For compatibility with menu_bar.py checks
         self.remote_pets = {}  # Track remote pets by user_id
-
-        # Health and hunger mechanics
-        self.health_bar = HealthBar(self)
-
-        # Food dragging
-        self.food_label = QLabel(self)
-        self.food_label.hide()  # Initially hidden
-        self.food_label.setScaledContents(True)
-
-        self.dragging_food = False  # Track if food is being dragged
-        self.selected_food = None  # Currently selected food
 
         # Set up window
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowTransparentForInput)
@@ -336,47 +324,6 @@ class PetApp(QMainWindow):
         self.pet_label.resize_for_window(screen_width, screen_height, self.pet_size_ratio)
         print(f"Pet size decreased. New ratio: {self.pet_size_ratio}")
 
-    def mouseMoveEvent(self, event):
-        """Move the food icon with the mouse."""
-        if self.dragging_food:  # Only move the food icon if dragging is active
-            # Update the position of the food icon to follow the mouse
-            cursor_x = event.globalX() - self.food_label.width() // 2
-            cursor_y = event.globalY() - self.food_label.height() // 2
-            self.food_label.move(cursor_x, cursor_y)
-            self.check_food_collision()  # Check if the food overlaps with the pet
-
-    def start_drag_food(self, food_name):
-        """Start dragging the selected food."""
-        self.selected_food = food_name
-        self.dragging_food = True
-
-        # Load and display the food icon
-        food_icon_path = resource_path(f"src/icon/{food_name}.png")
-        food_pixmap = QPixmap(food_icon_path)
-        self.food_label.setPixmap(food_pixmap)
-
-        # Resize food icon proportional to screen size
-        screen_width = self.width()
-        food_size = int(screen_width * 0.05)
-        self.food_label.resize(food_size, food_size)
-        self.food_label.show()
-        print(f"Dragging {food_name}...")
-
-    def check_food_collision(self):
-        """Check if the food overlaps with the pet."""
-        if not self.dragging_food:
-            return
-
-        food_rect = self.food_label.geometry()
-        pet_rect = self.pet_label.geometry()
-
-        if food_rect.intersects(pet_rect):
-            print(f"Pet ate {self.selected_food}!")
-            self.health_bar.feed(self.selected_food)
-            self.food_label.hide()
-            self.dragging_food = False
-            self.selected_food = None
-    
     def teleport_pet_to_portal(self):
         """Teleport pet to portal and freeze actions (for non-holder users)"""
         # Stop current behavior
@@ -652,8 +599,8 @@ class PetApp(QMainWindow):
         # Create stop event
         self.room_stop_event = threading.Event()
         
-        # Import connection module
-        from connection import start_room_connection
+        # Import db_connection module from teleport package
+        from teleport.db_connection import start_room_connection
         
         # Define callback for room events
         def on_room_event(event_type, data):
