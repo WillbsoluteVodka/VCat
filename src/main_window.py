@@ -58,7 +58,15 @@ class PetApp(QMainWindow):
         
         # Voice wake-up recognizer (listens for "Hey Kitty" etc.)
         self.voice_wake_recognizer = None
-        self._init_voice_wake_up()
+        
+        # Global hotkey for chat (Cmd+Shift+C)
+        self._init_global_hotkey()
+        
+        # Check for first-time onboarding (will request mic permission)
+        # Note: _init_voice_wake_up is called after onboarding or directly if not first launch
+        if not self._check_onboarding():
+            # Not first launch, initialize voice wake-up directly
+            self._init_voice_wake_up()
 
         # Room connection management
         self.room_thread = None
@@ -87,14 +95,72 @@ class PetApp(QMainWindow):
         screen_height = screen_geometry.height()
         self.resize(screen_width - 100, screen_height - 100)
 
+    def _init_global_hotkey(self):
+        """Initialize global hotkey (Cmd+Shift+C) for opening chat."""
+        try:
+            from AppKit import NSEvent, NSApplication
+            from Quartz import (
+                CGEventMaskBit, kCGEventKeyDown, 
+                kCGKeyboardEventKeycode, CGEventGetIntegerValueField
+            )
+            import Quartz
+            
+            # Key code for 'C' is 8, Cmd=0x100000, Shift=0x20000
+            def hotkey_callback(proxy, event_type, event, refcon):
+                try:
+                    # Get flags and keycode
+                    flags = Quartz.CGEventGetFlags(event)
+                    keycode = Quartz.CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode)
+                    
+                    # Check for Cmd+Shift+C (keycode 8 = 'C')
+                    cmd_pressed = (flags & 0x100000) != 0
+                    shift_pressed = (flags & 0x20000) != 0
+                    
+                    if keycode == 8 and cmd_pressed and shift_pressed:
+                        print("[VCat] Global hotkey Cmd+Shift+C pressed!")
+                        # Use QTimer to call from main thread
+                        QTimer.singleShot(0, self._on_voice_wake)
+                        return None  # Consume the event
+                except Exception as e:
+                    print(f"[Hotkey] Error: {e}")
+                return event
+            
+            # Create event tap
+            mask = CGEventMaskBit(kCGEventKeyDown)
+            tap = Quartz.CGEventTapCreate(
+                Quartz.kCGSessionEventTap,
+                Quartz.kCGHeadInsertEventTap,
+                Quartz.kCGEventTapOptionDefault,
+                mask,
+                hotkey_callback,
+                None
+            )
+            
+            if tap:
+                # Create run loop source
+                run_loop_source = Quartz.CFMachPortCreateRunLoopSource(None, tap, 0)
+                Quartz.CFRunLoopAddSource(
+                    Quartz.CFRunLoopGetCurrent(),
+                    run_loop_source,
+                    Quartz.kCFRunLoopCommonModes
+                )
+                Quartz.CGEventTapEnable(tap, True)
+                print("[VCat] Global hotkey (Cmd+Shift+C) registered")
+            else:
+                print("[VCat] Failed to create event tap - need Accessibility permission")
+                
+        except Exception as e:
+            print(f"[VCat] Global hotkey not available: {e}")
+
     def _init_voice_wake_up(self):
-        """Initialize voice wake-up listener for 'Hey Cat' etc."""
+        """Initialize voice wake-up listener using macOS NSSpeechRecognizer."""
         try:
             from src.chat.voice import VoiceRecognizer
+            
             self.voice_wake_recognizer = VoiceRecognizer(self)
             self.voice_wake_recognizer.wake_word_detected.connect(self._on_voice_wake)
             self.voice_wake_recognizer.start()
-            print("[VCat] Voice wake-up enabled. Say 'Hey Cat' to start a conversation.")
+            print("[VCat] Voice wake-up enabled (NSSpeechRecognizer). Say 'Hey Cat' to start.")
         except Exception as e:
             print(f"[VCat] Voice wake-up not available: {e}")
             self.voice_wake_recognizer = None
@@ -112,6 +178,31 @@ class PetApp(QMainWindow):
                 self, 
                 lambda: self.behavior_manager.advance_state(self.pet_behavior)
             )
+    
+    def _check_onboarding(self) -> bool:
+        """Show onboarding dialog on first launch.
+        
+        Returns:
+            True if onboarding was shown, False otherwise.
+        """
+        try:
+            from src.ui.onboarding_dialog import OnboardingDialog, should_show_onboarding
+            
+            if should_show_onboarding():
+                dialog = OnboardingDialog(self)
+                dialog.completed.connect(self._on_onboarding_complete)
+                dialog.exec_()
+                return True
+        except Exception as e:
+            print(f"[VCat] Onboarding check failed: {e}")
+        return False
+    
+    def _on_onboarding_complete(self, mic_granted: bool):
+        """Handle onboarding completion."""
+        print(f"[VCat] Onboarding complete. Mic permission: {mic_granted}")
+        if mic_granted and not self.voice_wake_recognizer:
+            # Permission was just granted, initialize voice wake-up
+            self._init_voice_wake_up()
     
     def activate_toolbar_pet(self):
         """Create the moving pet icon in the toolbar and hide the desktop pet."""

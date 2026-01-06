@@ -9,7 +9,7 @@ dependencies = [
     "pyobjc-framework-Cocoa>=9.0",
     "pyobjc-framework-quartz>=11.1",
     "supabase>=2.27.0",
-    # Whisper voice input
+    # Voice input (Whisper for transcription in chat dialog)
     "faster-whisper>=1.0.0",
     "sounddevice>=0.5.0",
     "numpy>=1.24.0",

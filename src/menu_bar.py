@@ -43,6 +43,14 @@ class MainMenuWindow(QMainWindow):
         # Pet Setting Menu (first/leftmost)
         pet_setting_menu = menubar.addMenu("Setting")
         
+        # Chat with Cat action (top priority)
+        chat_action = QAction("Chat with Cat", self)
+        chat_action.setShortcut("Ctrl+Shift+C")  # Cmd+Shift+C on macOS
+        chat_action.triggered.connect(self.open_chat_dialog)
+        pet_setting_menu.addAction(chat_action)
+        
+        pet_setting_menu.addSeparator()
+        
         # Change Pet action
         pet_setting_action = QAction("Change Pet", self)
         pet_setting_action.triggered.connect(self.open_pet_setting_dialog)
@@ -106,6 +114,14 @@ class MainMenuWindow(QMainWindow):
         leave_room_action = QAction("Leave Room", self)
         leave_room_action.triggered.connect(self.leave_room)
         test_menu.addAction(leave_room_action)
+
+    def open_chat_dialog(self):
+        """Open the chat dialog with the cat."""
+        if self.parent_app.is_chat_dialog_open:
+            print("[Menu] Chat dialog already open")
+            return
+        print("[Menu] Opening chat dialog...")
+        self.parent_app._on_voice_wake()
 
     def activate_toolbar_pet(self):
         """Activate the pet to move in the macOS toolbar."""

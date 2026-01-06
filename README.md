@@ -100,6 +100,16 @@ This project is a customizable desktop pet application where users can choose a 
 
 ---
 
+## 🔧 开发调试命令
+
+### 重置 Onboarding 引导页面
+```bash
+rm -f ~/.vcat/.onboarding_complete
+```
+运行后重启应用，会重新显示首次启动引导页面。
+
+---
+
 ## Installation
 Follow these steps to install and run the application:
 

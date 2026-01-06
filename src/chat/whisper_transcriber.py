@@ -32,7 +32,7 @@ class AudioRecorder:
     SAMPLE_RATE = 16000  # Whisper expects 16kHz
     CHANNELS = 1
     SILENCE_THRESHOLD = 0.01  # RMS threshold for silence detection
-    SILENCE_DURATION = 1.5   # Seconds of silence before auto-stop
+    SILENCE_DURATION = 0.5   # Seconds of silence before auto-stop
     
     def __init__(self, on_auto_stop: Optional[Callable] = None):
         self.recording = False

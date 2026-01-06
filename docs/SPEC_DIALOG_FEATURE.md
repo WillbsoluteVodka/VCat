@@ -284,7 +284,7 @@ src/
 - [x] 支持中英文混合识别
 - [x] 离线运行，无需网络
 - [x] VAD (Voice Activity Detection) 自动停止录音
-- [x] 说完话停顿 1.5 秒自动触发识别
+- [x] 说完话停顿 1 秒自动触发识别
 
 **技术实现**：
 - `faster-whisper` - 高效 Whisper 推理引擎

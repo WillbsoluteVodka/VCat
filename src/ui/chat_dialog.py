@@ -1,16 +1,18 @@
 """
 Siri-style chat dialog for VCat.
-A floating dialog that appears above the cat for conversation.
-Supports Whisper-based voice input.
+Inspired by macOS Sequoia Siri design with glass morphism and gradient effects.
 """
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
     QPushButton, QLineEdit, QScrollArea, QFrame,
-    QGraphicsDropShadowEffect, QSizePolicy
+    QGraphicsDropShadowEffect, QApplication
 )
-from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QTimer
-from PyQt5.QtGui import QColor, QFont, QPainter, QBrush, QPen, QPainterPath
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QRectF, QPointF
+from PyQt5.QtGui import (
+    QColor, QFont, QPainter, QBrush, QPen, QPainterPath, 
+    QLinearGradient, QRadialGradient
+)
 
 from src.chat.handler import ChatHandler
 
@@ -21,415 +23,458 @@ try:
 except ImportError:
     HAS_WHISPER = False
 
-# TODO: Native macOS blur effect (NSVisualEffectView) disabled due to 
-# PyQt5/PyObjC compatibility issues causing crashes. Using semi-transparent
-# background as fallback. Consider PySide6 or pure Cocoa window in future.
-HAS_NATIVE_BLUR = False
 
-
-class MessageBubble(QFrame):
-    """A single message bubble in the chat."""
+class SiriGradientBubble(QWidget):
+    """Siri-style gradient bubble for responses."""
     
-    def __init__(self, text: str, is_user: bool, parent=None):
+    def __init__(self, text: str, parent=None):
         super().__init__(parent)
-        self.is_user = is_user
-        self.setup_ui(text)
+        self.text = text
+        self.label = None
+        self.setup_ui()
         
-    def setup_ui(self, text: str):
+    def setup_ui(self):
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(8, 4, 8, 4)
+        layout.setContentsMargins(0, 4, 0, 4)
+        layout.setSpacing(0)
         
-        label = QLabel(text)
-        label.setWordWrap(True)
-        label.setMaximumWidth(220)
-        label.setFont(QFont("PingFang SC", 13))
+        # Create gradient bubble container
+        self.bubble = QWidget()
+        self.bubble.setMinimumWidth(100)
+        self.bubble.setMaximumWidth(280)
         
-        if self.is_user:
-            # User message - right aligned, blue background
-            label.setStyleSheet("""
-                QLabel {
-                    background-color: #007AFF;
-                    color: white;
-                    border-radius: 12px;
-                    padding: 8px 12px;
-                }
-            """)
-            layout.addStretch()
-            layout.addWidget(label)
-        else:
-            # Cat message - left aligned, gray background
-            label.setStyleSheet("""
-                QLabel {
-                    background-color: rgba(60, 60, 60, 0.9);
-                    color: white;
-                    border-radius: 12px;
-                    padding: 8px 12px;
-                }
-            """)
-            layout.addWidget(label)
-            layout.addStretch()
+        bubble_layout = QVBoxLayout(self.bubble)
+        bubble_layout.setContentsMargins(16, 12, 16, 12)
+        
+        self.label = QLabel(self.text)
+        self.label.setWordWrap(True)
+        self.label.setFont(QFont(".AppleSystemUIFont", 14))
+        self.label.setStyleSheet("color: white; background: transparent;")
+        self.label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        
+        bubble_layout.addWidget(self.label)
+        
+        layout.addWidget(self.bubble)
+        layout.addStretch()
+        
+        self.setStyleSheet("background: transparent;")
+        self.bubble.setStyleSheet("background: transparent;")
+        
+    def paintEvent(self, event):
+        if not self.bubble:
+            return
+            
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # Get bubble geometry
+        bubble_rect = self.bubble.geometry()
+        
+        # Create rounded path
+        path = QPainterPath()
+        path.addRoundedRect(QRectF(bubble_rect), 18, 18)
+        
+        # ChatGPT-style: clean dark gray background
+        painter.fillPath(path, QBrush(QColor(55, 55, 60, 245)))
+        
+        # Subtle top highlight for depth
+        highlight_path = QPainterPath()
+        highlight_rect = QRectF(bubble_rect)
+        highlight_rect.setHeight(min(30, bubble_rect.height() / 2))
+        highlight_path.addRoundedRect(highlight_rect, 18, 18)
+        
+        highlight = QLinearGradient(bubble_rect.left(), bubble_rect.top(), 
+                                     bubble_rect.left(), bubble_rect.top() + 30)
+        highlight.setColorAt(0, QColor(255, 255, 255, 12))
+        highlight.setColorAt(1, QColor(255, 255, 255, 0))
+        painter.fillPath(highlight_path, QBrush(highlight))
+        
+        painter.end()
+
+
+class UserBubble(QWidget):
+    """User message bubble."""
+    
+    def __init__(self, text: str, parent=None):
+        super().__init__(parent)
+        self.text = text
+        self.setup_ui()
+        
+    def setup_ui(self):
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 4, 0, 4)
+        
+        layout.addStretch()
+        
+        self.label = QLabel(self.text)
+        self.label.setWordWrap(True)
+        self.label.setMaximumWidth(220)
+        self.label.setFont(QFont(".AppleSystemUIFont", 14))
+        self.label.setStyleSheet("""
+            QLabel {
+                background-color: rgba(255, 255, 255, 0.18);
+                color: white;
+                border-radius: 18px;
+                padding: 10px 16px;
+            }
+        """)
+        layout.addWidget(self.label)
+        
+        self.setStyleSheet("background: transparent;")
+
+
+class SiriInputBar(QWidget):
+    """Siri-style input bar with gradient border."""
+    
+    textSubmitted = pyqtSignal(str)
+    voiceClicked = pyqtSignal()
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.input_field = None
+        self.setup_ui()
+        
+    def setup_ui(self):
+        self.setFixedHeight(56)
+        
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(0)
+        
+        # Input field
+        self.input_field = QLineEdit()
+        self.input_field.setPlaceholderText("跟小猫说点什么喵～")
+        self.input_field.setFont(QFont(".AppleSystemUIFont", 15))
+        self.input_field.setStyleSheet("""
+            QLineEdit {
+                background: transparent;
+                color: white;
+                border: none;
+                padding: 0 16px;
+            }
+            QLineEdit::placeholder {
+                color: rgba(255, 255, 255, 0.45);
+            }
+        """)
+        self.input_field.returnPressed.connect(self._on_submit)
+        
+        # Voice button
+        self.voice_btn = QPushButton()
+        self.voice_btn.setFixedSize(36, 36)
+        self.voice_btn.setCursor(Qt.PointingHandCursor)
+        self.voice_btn.clicked.connect(self.voiceClicked.emit)
+        self.voice_btn.setStyleSheet("background: transparent; border: none;")
+        
+        layout.addWidget(self.input_field, 1)
+        layout.addWidget(self.voice_btn)
+        
+    def _on_submit(self):
+        text = self.input_field.text().strip()
+        if text:
+            self.textSubmitted.emit(text)
+            self.input_field.clear()
+            
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        rect = self.rect()
+        
+        # Create pill shape path
+        path = QPainterPath()
+        path.addRoundedRect(QRectF(rect).adjusted(1, 1, -1, -1), 24, 24)
+        
+        # Dark glass background
+        painter.fillPath(path, QBrush(QColor(30, 30, 35, 200)))
+        
+        # Gradient border (Siri style - subtle rainbow)
+        gradient = QLinearGradient(0, 0, rect.width(), 0)
+        gradient.setColorAt(0, QColor(255, 100, 150, 80))     # Pink
+        gradient.setColorAt(0.3, QColor(150, 100, 200, 80))   # Purple  
+        gradient.setColorAt(0.6, QColor(100, 150, 255, 80))   # Blue
+        gradient.setColorAt(1, QColor(100, 200, 200, 80))     # Cyan
+        
+        painter.setPen(QPen(QBrush(gradient), 1.5))
+        painter.drawPath(path)
+        
+        # Draw mic icon
+        mic_center = QPointF(self.voice_btn.geometry().center())
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QColor(255, 255, 255, 150))
+        
+        # Mic body
+        mic_path = QPainterPath()
+        mic_path.addRoundedRect(mic_center.x() - 3, mic_center.y() - 8, 6, 11, 3, 3)
+        painter.drawPath(mic_path)
+        
+        # Mic arc
+        painter.setPen(QPen(QColor(255, 255, 255, 150), 1.5))
+        painter.setBrush(Qt.NoBrush)
+        painter.drawArc(
+            int(mic_center.x()) - 6, int(mic_center.y()) - 3,
+            12, 10, 0, -180 * 16
+        )
+        # Mic stand
+        painter.drawLine(
+            int(mic_center.x()), int(mic_center.y()) + 5,
+            int(mic_center.x()), int(mic_center.y()) + 9
+        )
+        
+        painter.end()
+        
+    def set_placeholder(self, text: str):
+        self.input_field.setPlaceholderText(text)
+        
+    def text(self):
+        return self.input_field.text()
+        
+    def clear(self):
+        self.input_field.clear()
+        
+    def setFocus(self):
+        self.input_field.setFocus()
 
 
 class ChatDialog(QWidget):
     """
-    Siri-style floating chat dialog.
-    Appears above the cat and allows text-based conversation.
-    Uses macOS native NSVisualEffectView for blur effect when available.
+    Siri-inspired floating chat dialog.
+    Clean, minimal design with gradient effects.
     """
     
-    # Signal emitted when dialog is closed
     dialog_closed = pyqtSignal()
     
     def __init__(self, pet_label=None, parent=None):
         super().__init__(parent)
         self.chat_handler = ChatHandler()
-        self.pet_label = pet_label  # Reference to pet widget for position tracking
-        self.position_timer = None  # Timer for updating position
-        self.visual_effect_view = None  # Native macOS blur view
+        self.pet_label = pet_label
+        self.position_timer = None
+        self.whisper = None
+        self.is_voice_active = False
+        
         self.setup_window()
         self.setup_ui()
-        self._setup_native_blur()
         
     def setup_window(self):
-        """Configure window properties for floating dialog."""
+        """Configure window."""
         self.setWindowFlags(
             Qt.FramelessWindowHint |
             Qt.WindowStaysOnTopHint |
-            Qt.Tool  # Prevents showing in taskbar
+            Qt.Tool
         )
         self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setFixedSize(320, 400)
-        
-    def _setup_native_blur(self):
-        """Set up macOS native blur effect using NSVisualEffectView."""
-        # TODO: Native blur disabled due to PyQt5/PyObjC compatibility issues
-        # Using semi-transparent fallback for now
-        print("[ChatDialog] Using semi-transparent background (native blur disabled)")
-    
-    def showEvent(self, event):
-        """Handle show event."""
-        super().showEvent(event)
-    
-    def _delayed_blur_setup(self):
-        """Setup blur after window is visible - currently disabled."""
-        pass
+        self.setFixedSize(360, 460)
         
     def setup_ui(self):
-        """Set up the dialog UI components."""
+        """Build the UI."""
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setContentsMargins(16, 16, 16, 16)
         main_layout.setSpacing(0)
         
-        # Container widget with rounded corners and semi-transparent background
-        self.container = QFrame(self)
-        self.container.setObjectName("chatContainer")
-        
-        # Dark semi-transparent background with subtle border
-        self.container.setStyleSheet("""
-            QFrame#chatContainer {
-                background-color: rgba(25, 25, 25, 0.88);
-                border-radius: 16px;
-                border: 1px solid rgba(255, 255, 255, 0.08);
-            }
-        """)
-        
+        # Main container
+        self.container = QWidget()
         container_layout = QVBoxLayout(self.container)
-        container_layout.setContentsMargins(12, 12, 12, 12)
-        container_layout.setSpacing(8)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.setSpacing(12)
         
-        # Header with close button
-        header_layout = QHBoxLayout()
+        # Header
+        header = QWidget()
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(12, 10, 12, 8)
         
-        title_label = QLabel("🐱 VCat")
-        title_label.setFont(QFont("PingFang SC", 14, QFont.Bold))
-        title_label.setStyleSheet("color: white;")
-        
+        # Close button (minimal, transparent)
         close_btn = QPushButton("✕")
         close_btn.setFixedSize(24, 24)
+        close_btn.setCursor(Qt.PointingHandCursor)
+        close_btn.setFont(QFont(".AppleSystemUIFont", 12))
         close_btn.setStyleSheet("""
             QPushButton {
-                background-color: rgba(255, 255, 255, 0.1);
-                color: white;
+                background: transparent;
+                color: rgba(255, 255, 255, 0.4);
                 border: none;
-                border-radius: 12px;
-                font-size: 14px;
             }
             QPushButton:hover {
-                background-color: rgba(255, 255, 255, 0.2);
+                color: rgba(255, 255, 255, 0.8);
             }
         """)
         close_btn.clicked.connect(self.close_dialog)
         
-        header_layout.addWidget(title_label)
-        header_layout.addStretch()
+        # Cat icon and title
+        cat_title = QLabel("🐱 VCat")
+        cat_title.setFont(QFont(".AppleSystemUIFont", 15, QFont.Medium))
+        cat_title.setStyleSheet("color: white; background: transparent;")
+        
         header_layout.addWidget(close_btn)
+        header_layout.addStretch()
+        header_layout.addWidget(cat_title)
+        header_layout.addStretch()
+        header_layout.addSpacing(24)  # Balance the close button
         
-        container_layout.addLayout(header_layout)
+        header.setStyleSheet("background: transparent;")
+        container_layout.addWidget(header)
         
-        # Chat history area (scrollable)
+        # Chat area
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.scroll_area.setStyleSheet("""
             QScrollArea {
-                background-color: transparent;
+                background: transparent;
                 border: none;
             }
             QScrollBar:vertical {
-                background-color: transparent;
-                width: 6px;
-                margin: 0px;
+                background: transparent;
+                width: 4px;
+                margin: 8px 2px;
             }
             QScrollBar::handle:vertical {
-                background-color: rgba(255, 255, 255, 0.3);
-                border-radius: 3px;
-                min-height: 20px;
+                background: rgba(255, 255, 255, 0.25);
+                border-radius: 2px;
+                min-height: 30px;
             }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            QScrollBar::add-line:vertical, 
+            QScrollBar::sub-line:vertical,
+            QScrollBar::add-page:vertical,
+            QScrollBar::sub-page:vertical {
+                background: transparent;
                 height: 0px;
             }
         """)
         
         self.messages_widget = QWidget()
+        self.messages_widget.setStyleSheet("background: transparent;")
         self.messages_layout = QVBoxLayout(self.messages_widget)
         self.messages_layout.setAlignment(Qt.AlignTop)
-        self.messages_layout.setSpacing(4)
-        self.messages_layout.setContentsMargins(0, 0, 0, 0)
+        self.messages_layout.setSpacing(8)
+        self.messages_layout.setContentsMargins(16, 8, 16, 8)
         
         self.scroll_area.setWidget(self.messages_widget)
-        container_layout.addWidget(self.scroll_area)
+        container_layout.addWidget(self.scroll_area, 1)
         
-        # Input area
-        input_layout = QHBoxLayout()
-        input_layout.setSpacing(8)
+        # Input bar
+        self.input_bar = SiriInputBar()
+        self.input_bar.textSubmitted.connect(self.send_message)
+        self.input_bar.voiceClicked.connect(self.toggle_voice_input)
         
-        # Voice input button
-        self.voice_btn = QPushButton("🎤")
-        self.voice_btn.setFixedSize(36, 36)
-        self.voice_btn.setFont(QFont("Apple Color Emoji", 14))
-        self.voice_btn.setStyleSheet("""
-            QPushButton {
-                background-color: rgba(255, 255, 255, 0.1);
-                color: white;
-                border: none;
-                border-radius: 18px;
-            }
-            QPushButton:hover {
-                background-color: rgba(255, 255, 255, 0.2);
-            }
-            QPushButton:pressed {
-                background-color: #FF3B30;
-            }
-        """)
-        self.voice_btn.setToolTip("点击开始/停止语音输入 (英文)")
-        self.voice_btn.clicked.connect(self.toggle_voice_input)
-        
-        self.input_field = QLineEdit()
-        self.input_field.setPlaceholderText("跟小猫说点什么喵～")
-        self.input_field.setFont(QFont("PingFang SC", 13))
-        self.input_field.setStyleSheet("""
-            QLineEdit {
-                background-color: rgba(255, 255, 255, 0.1);
-                color: white;
-                border: none;
-                border-radius: 16px;
-                padding: 8px 16px;
-            }
-            QLineEdit:focus {
-                background-color: rgba(255, 255, 255, 0.15);
-            }
-        """)
-        self.input_field.returnPressed.connect(self.send_message)
-        
-        send_btn = QPushButton("发送")
-        send_btn.setFont(QFont("PingFang SC", 12))
-        send_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #007AFF;
-                color: white;
-                border: none;
-                border-radius: 16px;
-                padding: 8px 16px;
-            }
-            QPushButton:hover {
-                background-color: #0056CC;
-            }
-        """)
-        send_btn.clicked.connect(self.send_message)
-        
-        input_layout.addWidget(self.voice_btn)
-        input_layout.addWidget(self.input_field)
-        input_layout.addWidget(send_btn)
-        
-        container_layout.addLayout(input_layout)
+        if not HAS_WHISPER:
+            self.input_bar.voice_btn.setEnabled(False)
+            
+        container_layout.addWidget(self.input_bar)
         
         main_layout.addWidget(self.container)
         
-        # Initialize Whisper voice transcriber (lazy load)
-        self.whisper = None
-        self.is_voice_active = False
+        # Shadow
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(50)
+        shadow.setColor(QColor(0, 0, 0, 80))
+        shadow.setOffset(0, 8)
+        self.container.setGraphicsEffect(shadow)
         
-        # Update voice button tooltip based on availability
-        if HAS_WHISPER:
-            self.voice_btn.setToolTip("点击开始/停止语音输入")
-        else:
-            self.voice_btn.setToolTip("语音功能不可用")
-            self.voice_btn.setEnabled(False)
+        # Add greeting
+        self.add_greeting()
         
-        # Show initial greeting
-        self.add_cat_greeting()
+    def paintEvent(self, event):
+        """Draw the glass background."""
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
         
-    def add_cat_greeting(self):
-        """Add initial greeting from the cat."""
-        greeting = "主人好喵～有什么想跟我说的喵？"
-        bubble = MessageBubble(greeting, is_user=False)
+        # Container rect (accounting for margins)
+        rect = self.container.geometry()
+        
+        # Main glass background
+        path = QPainterPath()
+        path.addRoundedRect(QRectF(rect), 28, 28)
+        
+        # Dark translucent background
+        painter.fillPath(path, QBrush(QColor(20, 20, 25, 235)))
+        
+        # Subtle gradient overlay for depth
+        overlay = QLinearGradient(rect.left(), rect.top(), rect.left(), rect.bottom())
+        overlay.setColorAt(0, QColor(255, 255, 255, 8))
+        overlay.setColorAt(0.1, QColor(255, 255, 255, 0))
+        overlay.setColorAt(1, QColor(0, 0, 0, 20))
+        painter.fillPath(path, QBrush(overlay))
+        
+        # Very subtle border
+        painter.setPen(QPen(QColor(255, 255, 255, 15), 0.5))
+        painter.drawPath(path)
+        
+        painter.end()
+        
+    def add_greeting(self):
+        """Show initial greeting."""
+        bubble = SiriGradientBubble("主人好喵～有什么想跟我说的喵？")
         self.messages_layout.addWidget(bubble)
-    
+        
     def toggle_voice_input(self):
-        """Toggle voice input on/off with single click."""
+        """Toggle voice."""
         if not HAS_WHISPER:
-            self.input_field.setPlaceholderText("语音功能不可用喵～")
             return
             
-        # Initialize Whisper on first use
         if self.whisper is None:
             self.whisper = WhisperTranscriber(model_size='base')
-            self.whisper.transcription_ready.connect(self._on_transcription_ready)
-            self.whisper.status_changed.connect(self._on_voice_status_changed)
+            self.whisper.transcription_ready.connect(self._on_transcription)
+            self.whisper.status_changed.connect(self._on_voice_status)
             self.whisper.error_occurred.connect(self._on_voice_error)
         
         if not self.is_voice_active:
-            # Start recording (will auto-stop on silence)
             self.is_voice_active = True
-            self.voice_btn.setText("⏹")
-            self.voice_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #FF3B30;
-                    color: white;
-                    border: none;
-                    border-radius: 18px;
-                }
-                QPushButton:hover {
-                    background-color: #FF6B60;
-                }
-            """)
-            self.input_field.setPlaceholderText("🎤 说话中...停顿1.5秒自动识别")
+            self.input_bar.set_placeholder("🎤 说话中...")
             self.whisper.start_recording()
         else:
-            # Manual stop (user clicked again)
-            self._stop_voice_and_transcribe()
-    
-    def _stop_voice_and_transcribe(self):
-        """Stop recording and start transcription."""
-        if not self.is_voice_active:
-            return
-        self.is_voice_active = False
-        self._reset_voice_button()
-        self.input_field.setPlaceholderText("正在识别...")
-        self.whisper.stop_recording()
-    
-    def _on_transcription_ready(self, text: str):
-        """Handle transcription result from Whisper."""
-        # Reset button state (in case of VAD auto-stop)
-        self.is_voice_active = False
-        self._reset_voice_button()
-        
-        # Insert transcribed text into input field
-        current_text = self.input_field.text()
-        if current_text:
-            self.input_field.setText(f"{current_text} {text}")
-        else:
-            self.input_field.setText(text)
-        self.input_field.setPlaceholderText("跟小猫说点什么喵～")
-        self.input_field.setFocus()
-    
-    def _on_voice_status_changed(self, status: str):
-        """Handle voice status updates."""
-        if status:
-            self.input_field.setPlaceholderText(status)
-        else:
-            self.input_field.setPlaceholderText("跟小猫说点什么喵～")
-    
-    def _on_voice_error(self, error: str):
-        """Handle voice recognition error."""
-        self.is_voice_active = False
-        self._reset_voice_button()
-        self.input_field.setPlaceholderText(f"❌ {error}")
-        # Reset placeholder after 2 seconds
-        QTimer.singleShot(2000, lambda: self.input_field.setPlaceholderText("跟小猫说点什么喵～"))
-        
-    def _reset_voice_button(self):
-        """Reset voice button to default state."""
-        self.voice_btn.setText("🎤")
-        self.voice_btn.setStyleSheet("""
-            QPushButton {
-                background-color: rgba(255, 255, 255, 0.1);
-                color: white;
-                border: none;
-                border-radius: 18px;
-            }
-            QPushButton:hover {
-                background-color: rgba(255, 255, 255, 0.2);
-            }
-        """)
-            
-    def stop_voice_input(self):
-        """Stop voice recording if active."""
-        if not self.is_voice_active:
-            return
-            
-        try:
-            if self.whisper:
-                self.whisper.cancel()
-            
-            # Reset button style
-            self._reset_voice_button()
-            
             self.is_voice_active = False
-            self.input_field.setPlaceholderText("跟小猫说点什么喵～")
+            self.input_bar.set_placeholder("正在识别...")
+            self.whisper.stop_recording()
             
-        except Exception as e:
-            print(f"Failed to stop voice input: {e}")
+    def _on_transcription(self, text: str):
+        self.is_voice_active = False
+        current = self.input_bar.text()
+        if current:
+            self.input_bar.input_field.setText(f"{current} {text}")
+        else:
+            self.input_bar.input_field.setText(text)
+        self.input_bar.set_placeholder("跟小猫说点什么喵～")
+        self.input_bar.setFocus()
         
-    def send_message(self):
-        """Handle sending a message."""
-        text = self.input_field.text().strip()
+    def _on_voice_status(self, status: str):
+        if status:
+            self.input_bar.set_placeholder(status)
+            
+    def _on_voice_error(self, error: str):
+        self.is_voice_active = False
+        self.input_bar.set_placeholder(f"❌ {error}")
+        QTimer.singleShot(2000, lambda: self.input_bar.set_placeholder("跟小猫说点什么喵～"))
+        
+    def send_message(self, text: str = None):
+        """Send message."""
+        if text is None:
+            text = self.input_bar.text().strip()
         if not text:
             return
             
-        # Add user message bubble
-        user_bubble = MessageBubble(text, is_user=True)
+        # User bubble
+        user_bubble = UserBubble(text)
         self.messages_layout.addWidget(user_bubble)
+        self.input_bar.clear()
         
-        # Clear input
-        self.input_field.clear()
-        
-        # Get response from handler
+        # Get response
         response = self.chat_handler.send_message(text)
-        
-        # Add response with slight delay for natural feeling
         QTimer.singleShot(300, lambda: self.add_response(response))
         
     def add_response(self, response: str):
-        """Add cat's response to the chat."""
-        cat_bubble = MessageBubble(response, is_user=False)
-        self.messages_layout.addWidget(cat_bubble)
-        
-        # Scroll to bottom
+        """Add cat response."""
+        bubble = SiriGradientBubble(response)
+        self.messages_layout.addWidget(bubble)
         QTimer.singleShot(50, self.scroll_to_bottom)
         
     def scroll_to_bottom(self):
-        """Scroll the chat to the bottom."""
         scrollbar = self.scroll_area.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
         
     def close_dialog(self):
-        """Close the dialog and emit signal."""
-        # Stop position tracking timer
         if self.position_timer:
             self.position_timer.stop()
             self.position_timer = None
-        # Stop whisper if recording
         if self.whisper:
             self.whisper.cancel()
             self.whisper = None
@@ -438,65 +483,41 @@ class ChatDialog(QWidget):
         self.close()
         
     def position_near_pet(self, pet_x: int, pet_y: int, pet_width: int, pet_height: int):
-        """
-        Position the dialog above the pet.
-        
-        Args:
-            pet_x, pet_y: Pet's current position
-            pet_width, pet_height: Pet's dimensions
-        """
-        # Position dialog above the pet, centered horizontally
         dialog_x = pet_x + (pet_width // 2) - (self.width() // 2)
-        dialog_y = pet_y - self.height() - 10  # 10px gap above pet
+        dialog_y = pet_y - self.height() - 10
         
-        # Make sure dialog stays on screen
-        from PyQt5.QtWidgets import QApplication
         screen = QApplication.primaryScreen().availableGeometry()
         
-        # Horizontal bounds
         if dialog_x < 10:
             dialog_x = 10
         elif dialog_x + self.width() > screen.width() - 10:
             dialog_x = screen.width() - self.width() - 10
             
-        # Vertical bounds - if not enough space above, show below
         if dialog_y < 10:
             dialog_y = pet_y + pet_height + 10
             
         self.move(dialog_x, dialog_y)
         
     def show_dialog(self, pet_x: int, pet_y: int, pet_width: int, pet_height: int):
-        """Show the dialog positioned near the pet."""
         self.position_near_pet(pet_x, pet_y, pet_width, pet_height)
         self.show()
-        self.input_field.setFocus()
+        self.input_bar.setFocus()
         self.raise_()
         self.activateWindow()
-        
-        # Start position tracking if pet_label is available
         self.start_position_tracking()
         
     def start_position_tracking(self):
-        """Start timer to update dialog position following the pet."""
         if self.pet_label and not self.position_timer:
             self.position_timer = QTimer(self)
             self.position_timer.timeout.connect(self.update_position)
-            self.position_timer.start(50)  # Update every 50ms for smooth following
+            self.position_timer.start(50)
             
     def update_position(self):
-        """Update dialog position to follow the pet."""
         if not self.pet_label:
             return
-            
         try:
-            pet_pos = self.pet_label.pos()
-            pet_size = self.pet_label.size()
-            self.position_near_pet(
-                pet_pos.x(),
-                pet_pos.y(),
-                pet_size.width(),
-                pet_size.height()
-            )
+            pos = self.pet_label.pos()
+            size = self.pet_label.size()
+            self.position_near_pet(pos.x(), pos.y(), size.width(), size.height())
         except Exception:
-            # Pet label might be deleted
             pass
