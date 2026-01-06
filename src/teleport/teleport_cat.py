@@ -340,7 +340,7 @@ class TeleportManager:
                             # New member - spawn their pet (must call from main thread)
                             print(f"[TELEPORT] Spawning pet for new member User {user_id_m}...")
                             QMetaObject.invokeMethod(
-                                self,
+                                self.app,
                                 "spawn_remote_pet",
                                 Qt.QueuedConnection,
                                 Q_ARG(int, user_id_m),
@@ -363,7 +363,7 @@ class TeleportManager:
                     user_id_m = data['user_id']
                     if user_id_m in self.remote_pets:
                         QMetaObject.invokeMethod(
-                            self,
+                            self.app,
                             "despawn_remote_pet",
                             Qt.QueuedConnection,
                             Q_ARG(int, user_id_m)
@@ -378,7 +378,7 @@ class TeleportManager:
                 if self.pet_teleported:
                     print("[TELEPORT] Recalling pet...")
                     QMetaObject.invokeMethod(
-                        self,
+                        self.app,
                         "recall_pet_from_portal",
                         Qt.QueuedConnection
                     )
