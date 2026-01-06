@@ -94,6 +94,7 @@ class PetApp(QMainWindow):
         screen_width = screen_geometry.width()
         screen_height = screen_geometry.height()
         self.resize(screen_width - 100, screen_height - 100)
+        self.move(screen_geometry.topLeft())
 
     def _init_global_hotkey(self):
         """Initialize global hotkey (Cmd+Shift+C) for opening chat."""

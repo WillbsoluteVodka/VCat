@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (
     QPushButton, QLineEdit, QScrollArea, QFrame,
     QGraphicsDropShadowEffect, QApplication
 )
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QRectF, QPointF
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QRectF, QPointF, QPoint
 from PyQt5.QtGui import (
     QColor, QFont, QPainter, QBrush, QPen, QPainterPath, 
     QLinearGradient, QRadialGradient
@@ -251,6 +251,10 @@ class ChatDialog(QWidget):
         self.whisper = None
         self.is_voice_active = False
         
+        # Drag support
+        self._drag_pos = None
+        self._is_dragging = False
+        
         self.setup_window()
         self.setup_ui()
         
@@ -283,9 +287,9 @@ class ChatDialog(QWidget):
         
         # Close button (minimal, transparent)
         close_btn = QPushButton("✕")
-        close_btn.setFixedSize(24, 24)
+        close_btn.setFixedSize(32, 32)
         close_btn.setCursor(Qt.PointingHandCursor)
-        close_btn.setFont(QFont(".AppleSystemUIFont", 12))
+        close_btn.setFont(QFont(".AppleSystemUIFont", 16))
         close_btn.setStyleSheet("""
             QPushButton {
                 background: transparent;
@@ -307,7 +311,7 @@ class ChatDialog(QWidget):
         header_layout.addStretch()
         header_layout.addWidget(cat_title)
         header_layout.addStretch()
-        header_layout.addSpacing(24)  # Balance the close button
+        header_layout.addSpacing(32)  # Balance the close button
         
         header.setStyleSheet("background: transparent;")
         container_layout.addWidget(header)
@@ -470,6 +474,28 @@ class ChatDialog(QWidget):
     def scroll_to_bottom(self):
         scrollbar = self.scroll_area.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
+    
+    # ===== Drag support =====
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._drag_pos = event.globalPos() - self.frameGeometry().topLeft()
+            self._is_dragging = True
+            # Stop following pet when user starts dragging
+            if self.position_timer:
+                self.position_timer.stop()
+                self.position_timer = None
+            event.accept()
+    
+    def mouseMoveEvent(self, event):
+        if self._is_dragging and self._drag_pos is not None:
+            self.move(event.globalPos() - self._drag_pos)
+            event.accept()
+    
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._is_dragging = False
+            self._drag_pos = None
+            event.accept()
         
     def close_dialog(self):
         if self.position_timer:
@@ -485,20 +511,34 @@ class ChatDialog(QWidget):
     def position_near_pet(self, pet_x: int, pet_y: int, pet_width: int, pet_height: int):
         dialog_x = pet_x + (pet_width // 2) - (self.width() // 2)
         dialog_y = pet_y - self.height() - 10
-        
-        screen = QApplication.primaryScreen().availableGeometry()
-        
-        if dialog_x < 10:
-            dialog_x = 10
-        elif dialog_x + self.width() > screen.width() - 10:
-            dialog_x = screen.width() - self.width() - 10
+        screen = self.pet_label.screen() if self.pet_label else None
+        if not screen:
+            screen = QApplication.primaryScreen()
+        screen_geometry = screen.availableGeometry()
+        screen_left = screen_geometry.left()
+        screen_top = screen_geometry.top()
+        screen_right = screen_left + screen_geometry.width()
+        screen_bottom = screen_top + screen_geometry.height()
+
+        if dialog_x < screen_left + 10:
+            dialog_x = screen_left + 10
+        elif dialog_x + self.width() > screen_right - 10:
+            dialog_x = screen_right - self.width() - 10
             
-        if dialog_y < 10:
+        if dialog_y < screen_top + 10:
             dialog_y = pet_y + pet_height + 10
+        if dialog_y + self.height() > screen_bottom - 10:
+            dialog_y = screen_bottom - self.height() - 10
             
         self.move(dialog_x, dialog_y)
         
     def show_dialog(self, pet_x: int, pet_y: int, pet_width: int, pet_height: int):
+        if self.pet_label:
+            pet_pos = self.pet_label.mapToGlobal(QPoint(0, 0))
+            pet_x = pet_pos.x()
+            pet_y = pet_pos.y()
+            pet_width = self.pet_label.width()
+            pet_height = self.pet_label.height()
         self.position_near_pet(pet_x, pet_y, pet_width, pet_height)
         self.show()
         self.input_bar.setFocus()
@@ -516,7 +556,7 @@ class ChatDialog(QWidget):
         if not self.pet_label:
             return
         try:
-            pos = self.pet_label.pos()
+            pos = self.pet_label.mapToGlobal(QPoint(0, 0))
             size = self.pet_label.size()
             self.position_near_pet(pos.x(), pos.y(), size.width(), size.height())
         except Exception:

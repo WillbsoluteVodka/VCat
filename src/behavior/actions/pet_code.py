@@ -2,7 +2,7 @@ import subprocess
 import os
 import time
 import random
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, QPoint
 from PyQt5.QtGui import QMovie
 from pet_data_loader import load_pet_data
 from src.ui.chat_dialog import ChatDialog
@@ -53,7 +53,7 @@ def run(self, parent, callback):
         parent.chat_dialog = _active_dialog
         
         # Get pet position and size
-        pet_pos = self.pet_label.pos()
+        pet_pos = self.pet_label.mapToGlobal(QPoint(0, 0))
         pet_size = self.pet_label.size()
         
         # Connect dialog closed signal
