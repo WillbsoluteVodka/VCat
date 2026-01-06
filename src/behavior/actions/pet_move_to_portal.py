@@ -30,7 +30,7 @@ def run(self, parent, callback):
     portal.setAttribute(Qt.WA_TranslucentBackground)
     
     # Load static portal PNG
-    portal_pixmap = QPixmap(self.resource_path("src/icon/portal.png"))
+    portal_pixmap = QPixmap(self.resource_path("src/teleport/portal.png"))
     portal.setPixmap(portal_pixmap)
     portal.setScaledContents(True)
     

@@ -66,7 +66,7 @@ class TeleportManager:
         portal = QLabel(self.app)
         portal.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         portal.setAttribute(Qt.WA_TranslucentBackground)
-        portal_pixmap = QPixmap(resource_path("src/icon/portal.png"))
+        portal_pixmap = QPixmap(resource_path("src/teleport/portal.png"))
         portal.setPixmap(portal_pixmap)
         portal.setScaledContents(True)
         
@@ -132,7 +132,7 @@ class TeleportManager:
         portal = QLabel(self.app)
         portal.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         portal.setAttribute(Qt.WA_TranslucentBackground)
-        portal_pixmap = QPixmap(resource_path("src/icon/portal.png"))
+        portal_pixmap = QPixmap(resource_path("src/teleport/portal.png"))
         portal.setPixmap(portal_pixmap)
         portal.setScaledContents(True)
         
@@ -231,7 +231,7 @@ class TeleportManager:
         portal = QLabel(self.app)
         portal.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         portal.setAttribute(Qt.WA_TranslucentBackground)
-        portal_pixmap = QPixmap(resource_path("src/icon/portal.png"))
+        portal_pixmap = QPixmap(resource_path("src/teleport/portal.png"))
         portal.setPixmap(portal_pixmap)
         portal.setScaledContents(True)
         
