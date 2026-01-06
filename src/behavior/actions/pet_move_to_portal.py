@@ -1,6 +1,6 @@
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtGui import QMovie, QPixmap
-from PyQt5.QtWidgets import QLabel, QApplication
+from PyQt5.QtWidgets import QLabel
 from pet_data_loader import load_pet_data
 
 
@@ -19,9 +19,10 @@ def run(self, parent, callback):
     self.resize_pet_label(parent)
     
     # Create portal at screen center (as static PNG image)
-    screen = QApplication.primaryScreen().availableGeometry()
-    portal_center_x = screen.width() // 2
-    portal_center_y = screen.height() // 2
+    screen_width = parent.width()
+    screen_height = parent.height()
+    portal_center_x = screen_width // 2
+    portal_center_y = screen_height // 2
     
     # Create portal label with static PNG
     portal = QLabel(parent)
@@ -29,12 +30,12 @@ def run(self, parent, callback):
     portal.setAttribute(Qt.WA_TranslucentBackground)
     
     # Load static portal PNG
-    portal_pixmap = QPixmap(self.resource_path("src/icon/portal.png"))
+    portal_pixmap = QPixmap(self.resource_path("src/teleport/portal.png"))
     portal.setPixmap(portal_pixmap)
     portal.setScaledContents(True)
     
     # Resize and position portal
-    portal_size = int(screen.width() * 0.1)
+    portal_size = int(screen_width * 0.1)
     portal.resize(portal_size, portal_size)
     portal.move(portal_center_x - portal_size // 2, portal_center_y - portal_size // 2)
     
@@ -96,5 +97,4 @@ def run(self, parent, callback):
         self.active_timers.append(finish_timer)
         finish_timer.timeout.connect(stop_end_movie_and_callback)
         finish_timer.start(1000)
-
 

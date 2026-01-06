@@ -509,8 +509,12 @@ class ChatDialog(QWidget):
         self.close()
         
     def position_near_pet(self, pet_x: int, pet_y: int, pet_width: int, pet_height: int):
-        dialog_x = pet_x + (pet_width // 2) - (self.width() // 2)
-        dialog_y = pet_y - self.height() - 10
+        margin = 10
+        dialog_width = self.width()
+        dialog_height = self.height()
+        center_x = pet_x + (pet_width // 2) - (dialog_width // 2)
+        above_y = pet_y - dialog_height - margin
+        below_y = pet_y + pet_height + margin
         screen = self.pet_label.screen() if self.pet_label else None
         if not screen:
             screen = QApplication.primaryScreen()
@@ -520,16 +524,31 @@ class ChatDialog(QWidget):
         screen_right = screen_left + screen_geometry.width()
         screen_bottom = screen_top + screen_geometry.height()
 
-        if dialog_x < screen_left + 10:
-            dialog_x = screen_left + 10
-        elif dialog_x + self.width() > screen_right - 10:
-            dialog_x = screen_right - self.width() - 10
-            
-        if dialog_y < screen_top + 10:
-            dialog_y = pet_y + pet_height + 10
-        if dialog_y + self.height() > screen_bottom - 10:
-            dialog_y = screen_bottom - self.height() - 10
-            
+        def clamp_position(x, y):
+            x = max(screen_left + margin, min(x, screen_right - dialog_width - margin))
+            y = max(screen_top + margin, min(y, screen_bottom - dialog_height - margin))
+            return x, y
+
+        if above_y >= screen_top + margin:
+            dialog_x, dialog_y = clamp_position(center_x, above_y)
+        elif below_y + dialog_height <= screen_bottom - margin:
+            dialog_x, dialog_y = clamp_position(center_x, below_y)
+        else:
+            left_x = pet_x - dialog_width - margin
+            right_x = pet_x + pet_width + margin
+            if right_x + dialog_width <= screen_right - margin:
+                dialog_x, dialog_y = clamp_position(
+                    right_x,
+                    pet_y + (pet_height // 2) - (dialog_height // 2)
+                )
+            elif left_x >= screen_left + margin:
+                dialog_x, dialog_y = clamp_position(
+                    left_x,
+                    pet_y + (pet_height // 2) - (dialog_height // 2)
+                )
+            else:
+                dialog_x, dialog_y = clamp_position(center_x, above_y)
+
         self.move(dialog_x, dialog_y)
         
     def show_dialog(self, pet_x: int, pet_y: int, pet_width: int, pet_height: int):

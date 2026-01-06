@@ -82,11 +82,8 @@ class PetBehavior(QObject):
         elif self.current_state == PetActions.GOINGTOPORTAL:
             self.pet_move_to_portal(parent, callback)
         elif self.current_state == PetActions.REACHEDPORTAL:
-            # print("im here")
-            if ID=="server":
-                parent.teleport_cat("server", self.pet_label)
-            else:
-                parent.teleport_cat("client", self.pet_label)
+            # Old networking code disabled - REACHEDPORTAL state unused
+            pass
 
     def calculate_label_size(self, parent):
         """
