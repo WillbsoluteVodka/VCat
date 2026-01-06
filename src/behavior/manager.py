@@ -1,6 +1,7 @@
 import random
 from PyQt5.QtCore import QTimer
 from .pet_actions import PetActions
+from .config import load_behavior_config
 
 
 class BehaviorManager:
@@ -15,6 +16,14 @@ class BehaviorManager:
     def __init__(self, parent_app):
         self.parent = parent_app
         self.pets = []  # list of dicts: {name, behavior, label}
+
+        # Load behavior configuration
+        self.config = load_behavior_config()
+
+    def reload_config(self):
+        """Reload configuration from disk (called after settings save)."""
+        self.config = load_behavior_config()
+        print(f"[BehaviorManager] Config reloaded")
 
     def register_pet(self, pet_name, behavior, label):
         entry = {"petname": pet_name, "behavior": behavior, "label": label}
@@ -43,14 +52,19 @@ class BehaviorManager:
         if current_state == PetActions.STARTDEFAULT:
             behavior.set_state(PetActions.WALKING)
         elif current_state == PetActions.WALKING:
-            if random.random() <= 0.95:
+            threshold = self.config["behavior_probabilities"]["walking_to_sitting"]
+            if random.random() <= threshold:
                 behavior.set_state(PetActions.SITTING)
             else:
                 behavior.set_state(PetActions.WALKING)
         elif current_state == PetActions.SITTING:
-            if random.random() <= 0.01:
+            prob_coding = self.config["behavior_probabilities"]["sitting_to_coding"]
+            prob_sleeping = self.config["behavior_probabilities"]["sitting_to_sleeping"]
+
+            rand = random.random()
+            if rand <= prob_coding:
                 behavior.set_state(PetActions.CODING)
-            elif random.random() <= 0.3:
+            elif rand <= prob_coding + prob_sleeping:
                 behavior.set_state(PetActions.SLEEPING)
             else:
                 behavior.set_state(PetActions.WALKING)

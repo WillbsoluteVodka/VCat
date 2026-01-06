@@ -1,23 +1,4 @@
-"""Menu UI module - simplified stub for minimal run.
-
-The original `menu_bar.py` contained a full PyQt menu and dialogs.
-For the current minimal run we replace it with a small stub that
-provides the `MainMenuWindow` symbol so imports succeed.
-"""
-
-class MainMenuWindow:
-    """Minimal stub used while other features are disabled."""
-    def __init__(self, parent_app):
-        self.parent_app = parent_app
-
-    def show(self):
-        return
-
-    def hide(self):
-        return
-
-    def exec_(self):
-        return
+"""Menu UI module - VCat menu bar and dialogs."""
 
 from PyQt5.QtGui import QMovie, QPixmap
 from PyQt5.QtWidgets import (
@@ -34,52 +15,12 @@ class MainMenuWindow(QMainWindow):
     """Window to hold the native menu bar."""
     def __init__(self, parent_app):
         super().__init__()
-        self.setWindowTitle("Menu Window")
+        self.setWindowTitle("VCat")
         self.parent_app = parent_app
 
         # Create the menu bar items
         menubar = self.menuBar()
-
-        # Pet Setting Menu (first/leftmost)
-        pet_setting_menu = menubar.addMenu("Setting")
-        
-        # Chat with Cat action (top priority)
-        chat_action = QAction("Chat with Cat", self)
-        chat_action.setShortcut("Ctrl+Shift+C")  # Cmd+Shift+C on macOS
-        chat_action.triggered.connect(self.open_chat_dialog)
-        pet_setting_menu.addAction(chat_action)
-        
-        pet_setting_menu.addSeparator()
-        
-        # Change Pet action
-        pet_setting_action = QAction("Change Pet", self)
-        pet_setting_action.triggered.connect(self.open_pet_setting_dialog)
-        pet_setting_menu.addAction(pet_setting_action)
-        
-        # Pet Size submenu
-        pet_size_menu = QMenu("Pet Size", self)
-        
-        # Increase Size action
-        increase_size_action = QAction("Increase Size", self)
-        increase_size_action.triggered.connect(self.increase_pet_size)
-        pet_size_menu.addAction(increase_size_action)
-        
-        # Decrease Size action
-        decrease_size_action = QAction("Decrease Size", self)
-        decrease_size_action.triggered.connect(self.decrease_pet_size)
-        pet_size_menu.addAction(decrease_size_action)
-        
-        pet_setting_menu.addMenu(pet_size_menu)
-        
-        # Move up action (move pet to menu bar)
-        go_up_action = QAction("Go Up", self)
-        go_up_action.triggered.connect(self.activate_toolbar_pet)
-        pet_setting_menu.addAction(go_up_action)
-        
-        # Move down action (move pet to desktop)
-        go_down_action = QAction("Go Down", self)
-        go_down_action.triggered.connect(self.deactivate_toolbar_pet)
-        pet_setting_menu.addAction(go_down_action)
+        menubar.setNativeMenuBar(True)  # Use native macOS menu bar
 
         # Shop Menu
         shop_menu = menubar.addMenu("Shop")
@@ -88,6 +29,15 @@ class MainMenuWindow(QMainWindow):
         shop_action = QAction("Open Shop", self)
         shop_action.triggered.connect(self.open_shop_window)
         shop_menu.addAction(shop_action)
+
+        # 🐱 Menu (避免 macOS 自动将 Settings/Preferences 归类到应用菜单)
+        cat_menu = menubar.addMenu("🐱")
+
+        # 设置窗口 action - 设置 NoRole 防止 macOS 自动归类
+        settings_action = QAction("Settings", self)
+        settings_action.setMenuRole(QAction.NoRole)  # 关键：阻止 macOS 自动移动到应用菜单
+        settings_action.triggered.connect(self.open_settings_window)
+        cat_menu.addAction(settings_action)
 
         # New Menu Bar Item for Parameters
         self.parameter_menu = menubar.addMenu("Parameters")
@@ -150,7 +100,13 @@ class MainMenuWindow(QMainWindow):
         """Open the shop window with product categories."""
         dialog = ShopWindow(self.parent_app)
         dialog.exec_()
-    
+
+    def open_settings_window(self):
+        """Open the settings window."""
+        from src.ui.settings_window import SettingsWindow
+        dialog = SettingsWindow(self.parent_app)
+        dialog.exec_()
+
     # 测试测试测试测试测试
     def open_test_dialog(self):
         """Open a dialog to input Room Number and User ID for testing."""

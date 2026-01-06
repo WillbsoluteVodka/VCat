@@ -43,9 +43,9 @@ class PetApp(QMainWindow):
         self.pets = []
         self.setMouseTracking(True)
         self.pet_movie = None
-        
-        # Pet size ratio - must be set BEFORE add_pet is called
-        self.pet_size_ratio = 0.3
+
+        # Pet size ratio - load from config or use default
+        self.load_pet_size_from_config()
 
         self.pet_kind, self.pet_color = get_current_pet()
         self.pet_behavior, self.pet_label = self.add_pet("Cat1", self.pet_kind, self.pet_color)
@@ -155,6 +155,14 @@ class PetApp(QMainWindow):
 
     def _init_voice_wake_up(self):
         """Initialize voice wake-up listener using macOS NSSpeechRecognizer."""
+        # Check if voice wake is enabled in config
+        from src.behavior.config import load_behavior_config
+        config = load_behavior_config()
+        if not config.get("voice_wake_enabled", True):
+            print("[VCat] Voice wake-up is disabled in settings.")
+            self.voice_wake_recognizer = None
+            return
+        
         try:
             from src.chat.voice import VoiceRecognizer
             
@@ -165,6 +173,25 @@ class PetApp(QMainWindow):
         except Exception as e:
             print(f"[VCat] Voice wake-up not available: {e}")
             self.voice_wake_recognizer = None
+    
+    def set_voice_wake_enabled(self, enabled: bool):
+        """Enable or disable voice wake-up feature."""
+        if enabled:
+            if not self.voice_wake_recognizer:
+                # Initialize voice wake-up
+                try:
+                    from src.chat.voice import VoiceRecognizer
+                    self.voice_wake_recognizer = VoiceRecognizer(self)
+                    self.voice_wake_recognizer.wake_word_detected.connect(self._on_voice_wake)
+                    self.voice_wake_recognizer.start()
+                    print("[VCat] Voice wake-up enabled.")
+                except Exception as e:
+                    print(f"[VCat] Failed to enable voice wake-up: {e}")
+        else:
+            if self.voice_wake_recognizer:
+                self.voice_wake_recognizer.stop()
+                self.voice_wake_recognizer = None
+                print("[VCat] Voice wake-up disabled.")
     
     def _on_voice_wake(self):
         """Handle voice wake word detection - trigger chat dialog."""
@@ -335,6 +362,18 @@ class PetApp(QMainWindow):
         screen_height = self.height()
         self.pet_label.resize_for_window(screen_width, screen_height, self.pet_size_ratio)
         print(f"Pet size decreased. New ratio: {self.pet_size_ratio}")
+
+    def load_pet_size_from_config(self):
+        """Load pet size from behavior config file."""
+        from src.behavior.config import load_behavior_config
+        config = load_behavior_config()
+        if "pet_size_ratio" in config:
+            self.pet_size_ratio = config["pet_size_ratio"]
+            print(f"[PetApp] Loaded pet size from config: {self.pet_size_ratio}")
+        else:
+            # Use default if not in config
+            self.pet_size_ratio = 0.3
+            print(f"[PetApp] Using default pet size: {self.pet_size_ratio}")
 
     def handle_parameters(self, param1, param2):
         # Networking/portal disabled in minimal mode.
@@ -829,12 +868,31 @@ class PetApp(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+
+    # Set application name for macOS menu bar
+    app.setApplicationName("VCat")
+    app.setApplicationDisplayName("VCat")
+    app.setOrganizationName("VCat")
+
+    # For macOS: Set the application name in the menu bar using PyObjC
+    try:
+        from Foundation import NSBundle
+        bundle = NSBundle.mainBundle()
+        if bundle:
+            info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
+            if info:
+                info['CFBundleName'] = 'VCat'
+                info['CFBundleDisplayName'] = 'VCat'
+    except ImportError:
+        print("[VCat] PyObjC not available, using default app name")
+
     pet_app = PetApp()
-    
+
     # Create and show menu window
     main_menu_window = MainMenuWindow(pet_app)
+    pet_app.menu_window = main_menu_window  # Store reference for settings window
     main_menu_window.show()
     main_menu_window.hide()  # Hide initially but keep in memory
-    
+
     pet_app.show()
     sys.exit(app.exec_())
