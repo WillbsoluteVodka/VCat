@@ -1,0 +1,9 @@
+{
+  "behavior_probabilities": {
+    "walking_to_sitting": 0.5,
+    "sitting_to_coding": 0.01,
+    "sitting_to_sleeping": 0.3
+  },
+  "pet_size_ratio": 0.15,
+  "version": "1.0"
+}
