@@ -19,7 +19,6 @@ from behavior.pet_actions import PetActions
 from behavior import LegacyBehaviorAdapter
 from src.ui.pet_widget import PetWidget
 from behavior import BehaviorManager
-from src.communication import PortalClient, PortalServer
 from src.pet_data_loader import load_pet_data, get_current_pet  # keep data loader for resources
 from src.toolbar_pet import MacOSToolbarIcon
 
