@@ -1,23 +1,4 @@
-"""Menu UI module - simplified stub for minimal run.
-
-The original `menu_bar.py` contained a full PyQt menu and dialogs.
-For the current minimal run we replace it with a small stub that
-provides the `MainMenuWindow` symbol so imports succeed.
-"""
-
-class MainMenuWindow:
-    """Minimal stub used while other features are disabled."""
-    def __init__(self, parent_app):
-        self.parent_app = parent_app
-
-    def show(self):
-        return
-
-    def hide(self):
-        return
-
-    def exec_(self):
-        return
+"""Menu UI module - VCat menu bar and dialogs."""
 
 from PyQt5.QtGui import QMovie, QPixmap
 from PyQt5.QtWidgets import (
@@ -34,52 +15,43 @@ class MainMenuWindow(QMainWindow):
     """Window to hold the native menu bar."""
     def __init__(self, parent_app):
         super().__init__()
-        self.setWindowTitle("Menu Window")
+        self.setWindowTitle("VCat")
         self.parent_app = parent_app
 
         # Create the menu bar items
         menubar = self.menuBar()
+        menubar.setNativeMenuBar(True)  # Use native macOS menu bar
 
-        # Pet Setting Menu (first/leftmost)
-        pet_setting_menu = menubar.addMenu("Setting")
-        
-        # Chat with Cat action (top priority)
-        chat_action = QAction("Chat with Cat", self)
-        chat_action.setShortcut("Ctrl+Shift+C")  # Cmd+Shift+C on macOS
-        chat_action.triggered.connect(self.open_chat_dialog)
-        pet_setting_menu.addAction(chat_action)
-        
-        pet_setting_menu.addSeparator()
-        
-        # Change Pet action
-        pet_setting_action = QAction("Change Pet", self)
-        pet_setting_action.triggered.connect(self.open_pet_setting_dialog)
-        pet_setting_menu.addAction(pet_setting_action)
-        
-        # Pet Size submenu
-        pet_size_menu = QMenu("Pet Size", self)
-        
-        # Increase Size action
-        increase_size_action = QAction("Increase Size", self)
-        increase_size_action.triggered.connect(self.increase_pet_size)
-        pet_size_menu.addAction(increase_size_action)
-        
-        # Decrease Size action
-        decrease_size_action = QAction("Decrease Size", self)
-        decrease_size_action.triggered.connect(self.decrease_pet_size)
-        pet_size_menu.addAction(decrease_size_action)
-        
-        pet_setting_menu.addMenu(pet_size_menu)
-        
-        # Move up action (move pet to menu bar)
-        go_up_action = QAction("Go Up", self)
-        go_up_action.triggered.connect(self.activate_toolbar_pet)
-        pet_setting_menu.addAction(go_up_action)
-        
-        # Move down action (move pet to desktop)
-        go_down_action = QAction("Go Down", self)
-        go_down_action.triggered.connect(self.deactivate_toolbar_pet)
-        pet_setting_menu.addAction(go_down_action)
+        # Shop Menu
+        shop_menu = menubar.addMenu("Shop")
+
+        # Shop action
+        shop_action = QAction("Open Shop", self)
+        shop_action.triggered.connect(self.open_shop_window)
+        shop_menu.addAction(shop_action)
+
+        # 🐱 Menu (避免 macOS 自动将 Settings/Preferences 归类到应用菜单)
+        cat_menu = menubar.addMenu("🐱")
+
+        # 设置窗口 action - 设置 NoRole 防止 macOS 自动归类
+        settings_action = QAction("Settings", self)
+        settings_action.setMenuRole(QAction.NoRole)  # 关键：阻止 macOS 自动移动到应用菜单
+        settings_action.triggered.connect(self.open_settings_window)
+        cat_menu.addAction(settings_action)
+
+        # New Menu Bar Item for Parameters
+        self.parameter_menu = menubar.addMenu("Parameters")
+
+        # Submenu for taking parameters
+        parameter_action = QAction("Input Parameters", self)
+        parameter_action.triggered.connect(self.open_parameter_dialog)
+        self.parameter_menu.addAction(parameter_action)
+
+        # Recall submenu (hidden initially)
+        self.recall_action = QAction("Recall", self)
+        self.recall_action.triggered.connect(self.recall_pet)
+        self.recall_action.setEnabled(False)  # Disable until parameters are set
+        self.parameter_menu.addAction(self.recall_action)
 
     # 测试测试测试测试测试
         # Test Menu
@@ -123,7 +95,18 @@ class MainMenuWindow(QMainWindow):
     def decrease_pet_size(self):
         """Decrease the pet size by 0.02."""
         self.parent_app.decrease_pet_size()
-    
+        
+    def open_shop_window(self):
+        """Open the shop window with product categories."""
+        dialog = ShopWindow(self.parent_app)
+        dialog.exec_()
+
+    def open_settings_window(self):
+        """Open the settings window."""
+        from src.ui.settings_window import SettingsWindow
+        dialog = SettingsWindow(self.parent_app)
+        dialog.exec_()
+
     # 测试测试测试测试测试
     def open_test_dialog(self):
         """Open a dialog to input Room Number and User ID for testing."""
@@ -196,13 +179,64 @@ class MainMenuWindow(QMainWindow):
         else:
             QMessageBox.information(self, "Not in Room", "You are not currently in a room.")
 
+    def open_parameter_dialog(self):
+        """Open a dialog to take two parameters."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Input Parameters")
+
+        layout = QVBoxLayout(dialog)
+
+        # First parameter input
+        label1 = QLabel("Client or server:", dialog)
+        layout.addWidget(label1)
+        param1_input = QLineEdit(dialog)
+        layout.addWidget(param1_input)
+
+        # Second parameter input
+        label2 = QLabel("If client, server IP:", dialog)
+        layout.addWidget(label2)
+        param2_input = QLineEdit(dialog)
+        layout.addWidget(param2_input)
+
+        # OK button
+        ok_button = QPushButton("OK", dialog)
+        layout.addWidget(ok_button)
+
+        # Handle the OK button click
+        def on_ok():
+            param1 = param1_input.text()
+            param2 = param2_input.text()
+            if param1 and param2:
+                dialog.accept()
+                self.process_parameters(param1, param2)
+            else:
+                QMessageBox.warning(self, "Invalid Input", "Both parameters are required.")
+
+        ok_button.clicked.connect(on_ok)
+
+        dialog.exec_()
+
+    def process_parameters(self, param1, param2):
+        """Process the two parameters."""
+        print(f"Parameter 1: {param1}, Parameter 2: {param2}")
+        self.parent_app.handle_parameters(param1, param2)
+
+        # Enable the Recall submenu after parameters are set
+        if param1 == "client":
+            self.recall_action.setEnabled(True)
+
+    def recall_pet(self):
+        """Handle the Recall menu action."""
+        print("Recall menu action triggered.")
+        self.parent_app.recall_pet()
+
     def open_pet_setting_dialog(self):
         """Open the Pet Setting dialog."""
         dialog = PetSettingDialog(self.parent_app)
         dialog.exec_()
 
 
-class PetSettingDialog(QDialog):
+class ShopWindow(QDialog):
     """Window to display shop items categorized into food, toys, and magical products."""
     def __init__(self, parent_app):
         super().__init__()
@@ -212,6 +246,236 @@ class PetSettingDialog(QDialog):
 
         # Dialog layout
         layout = QVBoxLayout(self)
+
+        # Tab widget for categories
+        tabs = QTabWidget(self)
+        layout.addWidget(tabs)
+
+        # Define categories and their items
+        categories = {
+            "Food": ["Apple", "Fish", "Meat"],
+            "Toys": ["Ball", "Feather"],
+            "Magic": []
+        }
+
+        # Create tabs dynamically
+        for category, items in categories.items():
+            tab = QWidget()
+            tab_layout = QGridLayout(tab)
+            tab_layout.setSpacing(20)
+
+            for idx, item in enumerate(items):
+                card = self.create_item_card(item)
+                row = idx // 3
+                col = idx % 3
+                tab_layout.addWidget(card, row, col)
+
+            tabs.addTab(tab, category)
+
+        # Close button
+        close_button = QPushButton("Close", self)
+        close_button.clicked.connect(self.close)
+        layout.addWidget(close_button)
+
+    def create_item_card(self, item_name):
+        """Create a visually appealing item card with an image and a clickable area."""
+        card = QFrame(self)
+        card.setFrameShape(QFrame.StyledPanel)
+        card.setStyleSheet("""
+            QFrame {
+                background-color: #f9f9f9;
+                border: 2px solid #ddd;
+                border-radius: 10px;
+                padding: 10px;
+            }
+            QFrame:hover {
+                background-color: #e6f7ff;
+                border: 2px solid #40a9ff;
+            }
+        """)
+
+        layout = QVBoxLayout(card)
+        layout.setAlignment(Qt.AlignCenter)
+
+        # Item image
+        screen_width = self.parent_app.width()
+        button_width = int(screen_width * 0.08)
+
+        item_image = QLabel(card)
+        item_image.setFixedSize(button_width, button_width)
+        item_image.setAlignment(Qt.AlignCenter)
+        item_image.setScaledContents(True)
+
+        # Load the item icon
+        icon_path = f"src/icon/{item_name}.png"
+        pixmap = QPixmap(icon_path)
+        item_image.setPixmap(pixmap)
+        self.active_images.append(item_image)
+
+        # Item name
+        item_label = QLabel(item_name)
+        item_label.setAlignment(Qt.AlignCenter)
+        item_label.setStyleSheet("font-weight: bold; color: #333;")
+
+        # Add components to the card
+        layout.addWidget(item_image)
+        layout.addWidget(item_label)
+
+        # Add click functionality
+        card.mousePressEvent = lambda event: self.purchase_item(item_name)
+
+        return card
+
+    def purchase_item(self, item_name):
+        """Handle item purchase logic."""
+        print(f"You selected {item_name}!")
+        self.parent_app.start_drag_food(item_name)
+        self.close()
+
+    def closeEvent(self, event):
+        """Ensure all resources are released when the shop window is closed."""
+        print("Shop window is closing. Cleaning up resources...")
+
+        # Clear all active QLabel pixmaps to release memory
+        for image_label in self.active_images:
+            image_label.clear()
+
+        self.active_images.clear()  # Clear the list of tracked images
+        super().closeEvent(event)
+    def __init__(self, parent_app):
+        super().__init__()
+        self.setWindowTitle("Shop")
+        self.parent_app = parent_app
+        self.active_images = []  # Track active QLabel pixmaps
+
+        # Set background image for the shop
+        self.setStyleSheet("""
+            QDialog {
+                background-image: url('icon/shop.png');
+                background-repeat: no-repeat;
+                background-position: center;
+                background-size: cover;
+            }
+            QLabel {
+                font-size: 14px;
+                color: white;  /* Adjust text color to ensure readability over the background */
+            }
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border-radius: 5px;
+                padding: 5px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+
+        # Layout for the shop window
+        main_layout = QVBoxLayout(self)
+
+        # Add a tab widget for categories
+        tab_widget = QTabWidget(self)
+        tab_widget.setStyleSheet("""
+            QTabBar::tab {
+                background: rgba(0, 0, 0, 0.7); /* Semi-transparent background for tabs */
+                padding: 8px;
+                font-size: 14px;
+                color: white;
+            }
+            QTabBar::tab:selected {
+                background: #4CAF50;
+                color: white;
+            }
+        """)
+
+        categories = {
+            "Food": ["Apple", "Fish", "Meat"],
+            "Toys": ["Ball", "Stick", "Puzzle"],
+            "Magical Items": ["Portal Key", "Time Crystal"]
+        }
+
+        # Add tabs for each category
+        for category, items in categories.items():
+            category_widget = QWidget()
+            category_layout = QGridLayout(category_widget)
+            category_layout.setSpacing(10)
+            category_layout.setContentsMargins(10, 10, 10, 10)
+
+            # Add items to the category
+            for index, item in enumerate(items):
+                item_card = self.create_item_card(item)
+                category_layout.addWidget(item_card, index // 3, index % 3)
+
+            tab_widget.addTab(category_widget, category)
+
+        main_layout.addWidget(tab_widget)
+
+        # Add close button
+        close_button = QPushButton("Close", self)
+        close_button.clicked.connect(self.close)
+        main_layout.addWidget(close_button)
+
+    def create_item_card(self, item_name):
+        """Create a visually appealing item card with an image and a clickable area."""
+        card = QFrame()
+        card.setFixedSize(150, 200)
+        card.setStyleSheet("""
+            QFrame {
+                background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white */
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                padding: 10px;
+            }
+            QFrame:hover {
+                border: 2px solid #4CAF50;
+            }
+        """)
+
+        layout = QVBoxLayout(card)
+
+        # Item image
+        item_image = QLabel()
+        pixmap = QPixmap(f"icon/{item_name.lower()}.png").scaled(80, 80, Qt.KeepAspectRatio)
+        item_image.setPixmap(pixmap)
+        item_image.setAlignment(Qt.AlignCenter)
+        self.active_images.append(item_image)  # Track the image for cleanup
+
+        # Item name
+        item_label = QLabel(item_name)
+        item_label.setAlignment(Qt.AlignCenter)
+        item_label.setStyleSheet("font-weight: bold; color: #333;")
+
+        # Add components to the card
+        layout.addWidget(item_image)
+        layout.addWidget(item_label)
+
+        # Add click functionality
+        card.mousePressEvent = lambda event: self.purchase_item(item_name)
+
+        return card
+
+    def purchase_item(self, item_name):
+        """Handle item purchase logic."""
+        print(f"You selected {item_name}!")
+        self.parent_app.start_drag_food(item_name)
+        self.close()
+
+    def closeEvent(self, event):
+        """Ensure all resources are released when the shop window is closed."""
+        print("Shop window is closing. Cleaning up resources...")
+
+        # Clear all active QLabel pixmaps to release memory
+        for image_label in self.active_images:
+            image_label.clear()
+
+        self.active_images.clear()  # Clear the list of tracked images
+        super().closeEvent(event)
+
+
+
+
 
 class PetSettingDialog(QDialog):
     """Dialog for selecting pet kind and color."""
@@ -331,6 +595,6 @@ class PetSettingDialog(QDialog):
     def unlock_pet(self, kind, color):
         """Unlock the selected pet."""
         print(f"Unlocking pet: {kind} - {color}")
-        # Health bar removed - unlock functionality disabled
+        self.parent_app.health_bar.handle_lock_pet(False, kind, color)  # Call a method
         self.parent_app.pet_label.show()
         self.close()
