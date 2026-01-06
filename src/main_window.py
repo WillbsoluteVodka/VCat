@@ -335,30 +335,6 @@ class PetApp(QMainWindow):
         self.pet_label.resize_for_window(screen_width, screen_height, self.pet_size_ratio)
         print(f"Pet size decreased. New ratio: {self.pet_size_ratio}")
 
-    def handle_parameters(self, param1, param2):
-        # Networking/portal disabled in minimal mode.
-        print("handle_parameters: networking disabled in minimal mode")
-
-    def recall_pet(self):
-        # Disabled: networking
-        print("recall_pet: networking disabled")
-
-    def receive_cat(self, message):
-        # Networking disabled; ignore messages
-        print("receive_cat: networking disabled")
-
-    def show_pet_on_client(self,message):
-        # Disabled: networking
-        print("show_pet_on_client: networking disabled")
-
-    def create_portal(self):
-        # Portals disabled in minimal mode.
-        print("create_portal: disabled in minimal mode")
-
-    def teleport_cat(self,id, pet=None):
-        # Networking disabled
-        print("teleport_cat: networking disabled")
-
     def mouseMoveEvent(self, event):
         """Move the food icon with the mouse."""
         if self.dragging_food:  # Only move the food icon if dragging is active

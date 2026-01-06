@@ -89,20 +89,6 @@ class MainMenuWindow(QMainWindow):
         shop_action.triggered.connect(self.open_shop_window)
         shop_menu.addAction(shop_action)
 
-        # New Menu Bar Item for Parameters
-        self.parameter_menu = menubar.addMenu("Parameters")
-
-        # Submenu for taking parameters
-        parameter_action = QAction("Input Parameters", self)
-        parameter_action.triggered.connect(self.open_parameter_dialog)
-        self.parameter_menu.addAction(parameter_action)
-
-        # Recall submenu (hidden initially)
-        self.recall_action = QAction("Recall", self)
-        self.recall_action.triggered.connect(self.recall_pet)
-        self.recall_action.setEnabled(False)  # Disable until parameters are set
-        self.parameter_menu.addAction(self.recall_action)
-
     # 测试测试测试测试测试
         # Test Menu
         test_menu = menubar.addMenu("Test")
@@ -222,57 +208,6 @@ class MainMenuWindow(QMainWindow):
                 QMessageBox.information(self, "Left Room", "You have left the room.")
         else:
             QMessageBox.information(self, "Not in Room", "You are not currently in a room.")
-
-    def open_parameter_dialog(self):
-        """Open a dialog to take two parameters."""
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Input Parameters")
-
-        layout = QVBoxLayout(dialog)
-
-        # First parameter input
-        label1 = QLabel("Client or server:", dialog)
-        layout.addWidget(label1)
-        param1_input = QLineEdit(dialog)
-        layout.addWidget(param1_input)
-
-        # Second parameter input
-        label2 = QLabel("If client, server IP:", dialog)
-        layout.addWidget(label2)
-        param2_input = QLineEdit(dialog)
-        layout.addWidget(param2_input)
-
-        # OK button
-        ok_button = QPushButton("OK", dialog)
-        layout.addWidget(ok_button)
-
-        # Handle the OK button click
-        def on_ok():
-            param1 = param1_input.text()
-            param2 = param2_input.text()
-            if param1 and param2:
-                dialog.accept()
-                self.process_parameters(param1, param2)
-            else:
-                QMessageBox.warning(self, "Invalid Input", "Both parameters are required.")
-
-        ok_button.clicked.connect(on_ok)
-
-        dialog.exec_()
-
-    def process_parameters(self, param1, param2):
-        """Process the two parameters."""
-        print(f"Parameter 1: {param1}, Parameter 2: {param2}")
-        self.parent_app.handle_parameters(param1, param2)
-
-        # Enable the Recall submenu after parameters are set
-        if param1 == "client":
-            self.recall_action.setEnabled(True)
-
-    def recall_pet(self):
-        """Handle the Recall menu action."""
-        print("Recall menu action triggered.")
-        self.parent_app.recall_pet()
 
     def open_pet_setting_dialog(self):
         """Open the Pet Setting dialog."""
