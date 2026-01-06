@@ -21,9 +21,7 @@ from behavior.pet_actions import PetActions
 from behavior import LegacyBehaviorAdapter
 from src.ui.pet_widget import PetWidget
 from behavior import BehaviorManager
-from src.communication import PortalClient, PortalServer
 from src.pet_data_loader import load_pet_data, get_current_pet  # keep data loader for resources
-from src.pet_health import HealthBar
 from src.toolbar_pet import MacOSToolbarIcon
 
 
@@ -75,9 +73,6 @@ class PetApp(QMainWindow):
         self.is_room_holder = False
         self.room_worker = None  # For compatibility with menu_bar.py checks
         self.remote_pets = {}  # Track remote pets by user_id
-
-        # Health and hunger mechanics
-        self.health_bar = HealthBar(self)
 
         # Food dragging
         self.food_label = QLabel(self)
@@ -435,7 +430,7 @@ class PetApp(QMainWindow):
 
         if food_rect.intersects(pet_rect):
             print(f"Pet ate {self.selected_food}!")
-            self.health_bar.feed(self.selected_food)
+            # TODO: health_bar.feed() - pet_health module missing
             self.food_label.hide()
             self.dragging_food = False
             self.selected_food = None
