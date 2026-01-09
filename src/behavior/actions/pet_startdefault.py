@@ -7,4 +7,4 @@ def run(self, parent, callback):
     sleep_duration_timer.setSingleShot(True)
     self.active_timers.append(sleep_duration_timer)
     sleep_duration_timer.timeout.connect(callback)
-    sleep_duration_timer.start(6000)
+    sleep_duration_timer.start(500)

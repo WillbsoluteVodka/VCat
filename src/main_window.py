@@ -60,11 +60,8 @@ class PetApp(QMainWindow):
         # Global hotkey for chat (Cmd+Shift+C)
         self._init_global_hotkey()
         
-        # Check for first-time onboarding (will request mic permission)
-        # Note: _init_voice_wake_up is called after onboarding or directly if not first launch
-        if not self._check_onboarding():
-            # Not first launch, initialize voice wake-up directly
-            self._init_voice_wake_up()
+        # Initialize voice wake-up in background thread for faster startup
+        threading.Thread(target=self._background_voice_init, daemon=True).start()
 
         # Room connection management
         self.room_thread = None
@@ -90,6 +87,18 @@ class PetApp(QMainWindow):
         screen_height = screen_geometry.height()
         self.resize(screen_width - 100, screen_height - 100)
         self.move(screen_geometry.topLeft())
+
+    def _background_voice_init(self):
+        """Initialize voice recognition in background thread for faster startup."""
+        import time
+        time.sleep(0.5)  # Let UI settle first
+        
+        # Check if this is first launch (onboarding needed)
+        if not self._check_onboarding():
+            # Not first launch - initialize voice wake-up
+            # Use QTimer.singleShot to call from main thread for thread safety
+            from PyQt5.QtCore import QTimer
+            QTimer.singleShot(0, self._init_voice_wake_up)
 
     def _init_global_hotkey(self):
         """Initialize global hotkey (Cmd+Shift+C) for opening chat."""
