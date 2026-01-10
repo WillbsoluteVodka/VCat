@@ -201,10 +201,6 @@ class PetSettingDialog(QDialog):
             for color in colors.keys():
                 # Load the image for this pet kind and color (lock functionality commented out)
                 gif_path = load_pet_data(pet_kind, color, "demo")
-                # if lock_flag==False:
-                #     gif_path = load_pet_data(pet_kind, color, "demo")
-                # else:
-                #     gif_path = load_pet_data(pet_kind, color, "lock")
 
                 # Create a QPushButton
                 button = QPushButton(self)
@@ -236,14 +232,6 @@ class PetSettingDialog(QDialog):
                 button.clicked.connect(
                     lambda _, k=pet_kind, c=color: self.save_settings(k, c)
                 )
-                # if lock_flag==True:
-                #     button.clicked.connect(
-                #         lambda _, k=pet_kind, c=color: self.unlock_pet(k, c)
-                #     )
-                # else:
-                #     button.clicked.connect(
-                #         lambda _, k=pet_kind, c=color: self.save_settings(k, c)
-                #     )
 
 
             scroll_layout.addLayout(button_layout)
