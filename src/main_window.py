@@ -67,14 +67,36 @@ class PetApp(QMainWindow):
         # Teleport manager handles all room connections and pet teleportation
         self.teleport_manager = TeleportManager(self)
 
+        # Drag handler for Command+Click drag functionality
+        from src.behavior.drag_pet import DragHandler
+        self.drag_handler = DragHandler(self)
+
         # Set up window
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowTransparentForInput)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
         screen_geometry = QApplication.primaryScreen().availableGeometry()
         screen_width = screen_geometry.width()
         screen_height = screen_geometry.height()
         self.resize(screen_width - 100, screen_height - 100)
         self.move(screen_geometry.topLeft())
+
+    def mousePressEvent(self, event):
+        """Handle mouse press - delegate to drag handler."""
+        if self.drag_handler.handle_press(event):
+            return
+        super().mousePressEvent(event)
+    
+    def mouseMoveEvent(self, event):
+        """Handle mouse move - delegate to drag handler."""
+        if self.drag_handler.handle_move(event):
+            return
+        super().mouseMoveEvent(event)
+    
+    def mouseReleaseEvent(self, event):
+        """Handle mouse release - delegate to drag handler."""
+        if self.drag_handler.handle_release(event):
+            return
+        super().mouseReleaseEvent(event)
 
     def _background_voice_init(self):
         """Initialize voice recognition in background thread for faster startup."""

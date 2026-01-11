@@ -10,6 +10,7 @@
             "start_move_portal": "gifs/DEV_CAT/Black/Black_cat_start_move_portal.gif",
             "end_move_portal": "gifs/DEV_CAT/Black/Black_cat_end_move_portal.gif",
             "touch_belly": "gifs/DEV_CAT/Black/Black_cat_touch_belly.gif",
+            "drag": "gifs/DEV_CAT/Black/Black_cat_drag.gif",
             "lock": "gifs/DEV_CAT/Black/strange.gif",
             "lock_flag": false
         },
@@ -23,6 +24,7 @@
             "start_move_portal": "gifs/DEV_CAT/White/White_cat_start_move_portal.gif",
             "end_move_portal": "gifs/DEV_CAT/White/White_cat_end_move_portal.gif",
             "touch_belly": "gifs/DEV_CAT/White/White_cat_touch_belly.gif",
+            "drag": "gifs/DEV_CAT/White/White_cat_drag.gif",
             "lock": "gifs/DEV_CAT/Black/strange.gif",
             "lock_flag": false
         }

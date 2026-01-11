@@ -24,6 +24,21 @@ class BehaviorManager:
         """Reload configuration from disk (called after settings save)."""
         self.config = load_behavior_config()
         print(f"[VCat] Config reloaded")
+    
+    def pause_all(self):
+        """Pause all pet behaviors by stopping their timers."""
+        for entry in self.pets:
+            behavior = entry["behavior"]
+            behavior.pause()
+        print("[BehaviorManager] All behaviors paused")
+    
+    def resume_with_state(self, behavior, state):
+        """Resume a specific behavior with the given state."""
+        # Set the state back
+        behavior.set_state(state)
+        # Resume the behavior which will perform the action for that state
+        behavior.resume(self.parent, lambda: self.advance_state(behavior))
+        print(f"[BehaviorManager] Resumed behavior with state: {state}")
 
     def register_pet(self, pet_name, behavior, label):
         entry = {"petname": pet_name, "behavior": behavior, "label": label}
