@@ -23,7 +23,7 @@ class BehaviorManager:
     def reload_config(self):
         """Reload configuration from disk (called after settings save)."""
         self.config = load_behavior_config()
-        print(f"[BehaviorManager] Config reloaded")
+        print(f"[VCat] Config reloaded")
 
     def register_pet(self, pet_name, behavior, label):
         entry = {"petname": pet_name, "behavior": behavior, "label": label}

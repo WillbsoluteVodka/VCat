@@ -66,7 +66,7 @@ class PetBehavior(QObject):
 
     def perform_action(self, parent, callback,ID=None):
         """Perform an action based on the current state."""
-        print(f"{self.current_state} ID={ID}")
+        print(f"[Action] {self.current_state} ID={ID}")
         if self.current_state == PetActions.STARTDEFAULT:
             self.pet_startdefault(parent, callback)
         elif self.current_state == PetActions.WALKING:

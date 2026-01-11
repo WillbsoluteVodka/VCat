@@ -162,7 +162,7 @@ class PetWidget(QLabel):
         # Start timer to print every 1 second (for debugging)
         if not self._hover_timer:
             self._hover_timer = QTimer()
-            self._hover_timer.timeout.connect(lambda: print("in area"))
+            # self._hover_timer.timeout.connect(lambda: print("in area"))
         self._hover_timer.start(1000)  # Print every 1000ms (1 second)
     
     def _on_hover_end(self):

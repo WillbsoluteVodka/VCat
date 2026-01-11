@@ -148,8 +148,7 @@ class PetApp(QMainWindow):
     def _init_voice_wake_up(self):
         """Initialize voice wake-up listener using macOS NSSpeechRecognizer."""
         # Check if voice wake is enabled in config
-        from src.behavior.config import load_behavior_config
-        config = load_behavior_config()
+        config = self.behavior_manager.config
         if not config.get("voice_wake_enabled", True):
             print("[VCat] Voice wake-up is disabled in settings.")
             self.voice_wake_recognizer = None
@@ -161,9 +160,9 @@ class PetApp(QMainWindow):
             self.voice_wake_recognizer = VoiceRecognizer(self)
             self.voice_wake_recognizer.wake_word_detected.connect(self._on_voice_wake)
             self.voice_wake_recognizer.start()
-            print("[VCat] Voice wake-up enabled (NSSpeechRecognizer). Say 'Hey Cat' to start.")
+            print("[Voice] Voice wake-up enabled (NSSpeechRecognizer). Say 'Hey Cat' to start.")
         except Exception as e:
-            print(f"[VCat] Voice wake-up not available: {e}")
+            print(f"[Voice] Voice wake-up not available: {e}")
             self.voice_wake_recognizer = None
     
     def set_voice_wake_enabled(self, enabled: bool):
@@ -363,15 +362,14 @@ class PetApp(QMainWindow):
 
     def load_pet_size_from_config(self):
         """Load pet size from behavior config file."""
-        from src.behavior.config import load_behavior_config
-        config = load_behavior_config()
+        config = self.behavior_manager.config
         if "pet_size_ratio" in config:
             self.pet_size_ratio = config["pet_size_ratio"]
-            print(f"[PetApp] Loaded pet size from config: {self.pet_size_ratio}")
+            print(f"[VCat] Loaded pet size from config: {self.pet_size_ratio}")
         else:
             # Use default if not in config
             self.pet_size_ratio = 0.3
-            print(f"[PetApp] Using default pet size: {self.pet_size_ratio}")
+            print(f"[VCat] Using default pet size: {self.pet_size_ratio}")
 
     # Teleport delegation methods
     def teleport_pet_to_portal(self):

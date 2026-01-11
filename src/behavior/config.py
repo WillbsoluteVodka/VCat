@@ -29,7 +29,7 @@ def load_behavior_config() -> Dict:
     """
     try:
         if not os.path.exists(CONFIG_PATH):
-            print(f"[BehaviorConfig] File not found at {CONFIG_PATH}, using defaults")
+            print(f"[VCat] File not found at {CONFIG_PATH}, using defaults")
             return DEFAULT_CONFIG.copy()
 
         with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
@@ -37,23 +37,23 @@ def load_behavior_config() -> Dict:
 
         is_valid, error = validate_config(config)
         if not is_valid:
-            print(f"[BehaviorConfig] Invalid config: {error}. Using defaults")
+            print(f"[VCat] Invalid config: {error}. Using defaults")
             # Backup corrupt file
             backup_path = CONFIG_PATH + ".bak"
             if os.path.exists(CONFIG_PATH):
                 import shutil
                 shutil.copy(CONFIG_PATH, backup_path)
-                print(f"[BehaviorConfig] Backed up corrupt file to {backup_path}")
+                print(f"[VCat] Backed up corrupt file to {backup_path}")
             return DEFAULT_CONFIG.copy()
 
-        print(f"[BehaviorConfig] Loaded: {config}")
+        print(f"[VCat] Loaded: {config}")
         return config
 
     except json.JSONDecodeError as e:
-        print(f"[BehaviorConfig] JSON decode error: {e}. Using defaults")
+        print(f"[VCat] JSON decode error: {e}. Using defaults")
         return DEFAULT_CONFIG.copy()
     except Exception as e:
-        print(f"[BehaviorConfig] Unexpected error: {e}. Using defaults")
+        print(f"[VCat] Unexpected error: {e}. Using defaults")
         return DEFAULT_CONFIG.copy()
 
 
@@ -74,12 +74,12 @@ def save_behavior_config(config: Dict) -> Tuple[bool, str]:
         with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
             json.dump(config, f, indent=2, ensure_ascii=False)
 
-        print(f"[BehaviorConfig] Saved to {CONFIG_PATH}")
+        print(f"[VCat] Saved to {CONFIG_PATH}")
         return True, "Settings saved successfully"
 
     except Exception as e:
         error_msg = f"Failed to save: {str(e)}"
-        print(f"[BehaviorConfig] {error_msg}")
+        print(f"[VCat] {error_msg}")
         return False, error_msg
 
 
