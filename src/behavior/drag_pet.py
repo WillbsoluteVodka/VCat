@@ -91,14 +91,21 @@ class DragHandler:
             self.drag_start_pos = None
             self.saved_pet_pos = None
             
-            # Resume behavior with saved state
-            if self.saved_state is not None:
-                print(f"[VCat] Command+Drag released - resuming state: {self.saved_state}")
-                self.parent.behavior_manager.resume_with_state(
-                    self.parent.pet_behavior, 
-                    self.saved_state
-                )
+            # Check if released in toolbar area (top-right corner)
+            if self._is_in_toolbar_area(event.globalPos()):
+                print(f"[VCat] Pet dragged to toolbar area - activating toolbar mode")
                 self.saved_state = None
+                # Activate toolbar pet
+                self.parent.activate_toolbar_pet()
+            else:
+                # Resume behavior with saved state
+                if self.saved_state is not None:
+                    print(f"[VCat] Command+Drag released - resuming state: {self.saved_state}")
+                    self.parent.behavior_manager.resume_with_state(
+                        self.parent.pet_behavior, 
+                        self.saved_state
+                    )
+                    self.saved_state = None
             
             return True
         
@@ -116,3 +123,29 @@ class DragHandler:
         self.parent.pet_label.setMovie(drag_movie)
         self.parent.pet_label.setScaledContents(True)
         drag_movie.start()
+    
+    def _is_in_toolbar_area(self, global_pos):
+        """Check if the release position is in the toolbar area (top-right corner).
+        
+        Args:
+            global_pos: QPoint with the global cursor position
+            
+        Returns:
+            True if position is in toolbar area, False otherwise
+        """
+        from PyQt5.QtWidgets import QApplication
+        
+        # Get screen geometry
+        screen = QApplication.primaryScreen()
+        screen_geometry = screen.availableGeometry()
+        
+        # Define toolbar area as the top-right region
+        # macOS menu bar is typically 25-30 pixels high, toolbar icons on the right
+        toolbar_height = 50  # Top 50 pixels of screen
+        toolbar_width = 600  # Right 300 pixels of screen
+        
+        # Check if position is in top-right corner
+        is_in_top = global_pos.y() <= screen_geometry.top() + toolbar_height
+        is_in_right = global_pos.x() >= screen_geometry.right() - toolbar_width
+        
+        return is_in_top and is_in_right
