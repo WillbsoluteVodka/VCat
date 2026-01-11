@@ -77,7 +77,7 @@ class PetApp(QMainWindow):
         screen_geometry = QApplication.primaryScreen().availableGeometry()
         screen_width = screen_geometry.width()
         screen_height = screen_geometry.height()
-        self.resize(screen_width - 100, screen_height - 100)
+        self.resize(screen_width, screen_height)
         self.move(screen_geometry.topLeft())
 
     def mousePressEvent(self, event):
