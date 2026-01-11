@@ -4,17 +4,30 @@ Inspired by macOS Sequoia Siri design with glass morphism and gradient effects.
 """
 
 from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QLineEdit, QScrollArea, QFrame,
-    QGraphicsDropShadowEffect, QApplication
+    QGraphicsDropShadowEffect, QApplication, QDialog
 )
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QRectF, QPointF, QPoint
+import math
+
+from PyQt5.QtCore import (
+    Qt,
+    pyqtSignal,
+    QTimer,
+    QRectF,
+    QPointF,
+    QPoint,
+    QPropertyAnimation,
+    QEasingCurve,
+)
 from PyQt5.QtGui import (
     QColor, QFont, QPainter, QBrush, QPen, QPainterPath, 
     QLinearGradient, QRadialGradient
 )
 
 from src.chat.handler import ChatHandler
+from src.ui.llm_settings_panel import LLMSettingsPanel
+from src.ui.setup_wizard import SetupWizard
 
 # Whisper voice transcription
 try:
@@ -27,9 +40,10 @@ except ImportError:
 class SiriGradientBubble(QWidget):
     """Siri-style gradient bubble for responses."""
     
-    def __init__(self, text: str, parent=None):
+    def __init__(self, text: str, parent=None, is_error: bool = False):
         super().__init__(parent)
         self.text = text
+        self.is_error = is_error
         self.label = None
         self.setup_ui()
         
@@ -75,7 +89,10 @@ class SiriGradientBubble(QWidget):
         path.addRoundedRect(QRectF(bubble_rect), 18, 18)
         
         # ChatGPT-style: clean dark gray background
-        painter.fillPath(path, QBrush(QColor(55, 55, 60, 245)))
+        if self.is_error:
+            painter.fillPath(path, QBrush(QColor(120, 40, 40, 230)))
+        else:
+            painter.fillPath(path, QBrush(QColor(55, 55, 60, 245)))
         
         # Subtle top highlight for depth
         highlight_path = QPainterPath()
@@ -83,13 +100,28 @@ class SiriGradientBubble(QWidget):
         highlight_rect.setHeight(min(30, bubble_rect.height() / 2))
         highlight_path.addRoundedRect(highlight_rect, 18, 18)
         
-        highlight = QLinearGradient(bubble_rect.left(), bubble_rect.top(), 
-                                     bubble_rect.left(), bubble_rect.top() + 30)
-        highlight.setColorAt(0, QColor(255, 255, 255, 12))
+        highlight = QLinearGradient(
+            bubble_rect.left(),
+            bubble_rect.top(),
+            bubble_rect.left(),
+            bubble_rect.top() + 30,
+        )
+        highlight_alpha = 6 if self.is_error else 12
+        highlight.setColorAt(0, QColor(255, 255, 255, highlight_alpha))
         highlight.setColorAt(1, QColor(255, 255, 255, 0))
         painter.fillPath(highlight_path, QBrush(highlight))
         
         painter.end()
+
+    def append_text(self, chunk: str):
+        if not chunk:
+            return
+        self.text += chunk
+        self.label.setText(self.text)
+
+    def set_text(self, text: str):
+        self.text = text or ""
+        self.label.setText(self.text)
 
 
 class UserBubble(QWidget):
@@ -235,6 +267,40 @@ class SiriInputBar(QWidget):
         self.input_field.setFocus()
 
 
+class GearButton(QPushButton):
+    """Minimal gear icon button drawn with QPainter."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(28, 28)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setStyleSheet("background: transparent; border: none;")
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        color = QColor(255, 255, 255, 200 if self.underMouse() else 140)
+        center = self.rect().center()
+        radius = 7
+
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(color)
+
+        for i in range(6):
+            angle = math.radians(i * 60)
+            x = center.x() + math.cos(angle) * (radius + 4) - 2
+            y = center.y() + math.sin(angle) * (radius + 4) - 2
+            painter.drawRoundedRect(int(x), int(y), 4, 4, 1.5, 1.5)
+
+        painter.drawEllipse(center, radius, radius)
+
+        painter.setBrush(QColor(20, 20, 25, 255))
+        painter.drawEllipse(center, 3, 3)
+
+        painter.end()
+
+
 class ChatDialog(QWidget):
     """
     Siri-inspired floating chat dialog.
@@ -250,6 +316,11 @@ class ChatDialog(QWidget):
         self.position_timer = None
         self.whisper = None
         self.is_voice_active = False
+        self.active_response_bubble = None
+        self.settings_panel = None
+        self.panel_animation = None
+        self.panel_visible = False
+        self.setup_wizard = None
         
         # Drag support
         self._drag_pos = None
@@ -257,6 +328,10 @@ class ChatDialog(QWidget):
         
         self.setup_window()
         self.setup_ui()
+
+        self.chat_handler.response_chunk.connect(self._on_response_chunk)
+        self.chat_handler.response_complete.connect(self._on_response_complete)
+        self.chat_handler.response_error.connect(self._on_response_error)
         
     def setup_window(self):
         """Configure window."""
@@ -287,9 +362,9 @@ class ChatDialog(QWidget):
         
         # Close button (minimal, transparent)
         close_btn = QPushButton("✕")
-        close_btn.setFixedSize(32, 32)
+        close_btn.setFixedSize(28, 28)
         close_btn.setCursor(Qt.PointingHandCursor)
-        close_btn.setFont(QFont(".AppleSystemUIFont", 16))
+        close_btn.setFont(QFont(".AppleSystemUIFont", 15))
         close_btn.setStyleSheet("""
             QPushButton {
                 background: transparent;
@@ -301,17 +376,21 @@ class ChatDialog(QWidget):
             }
         """)
         close_btn.clicked.connect(self.close_dialog)
-        
-        # Cat icon and title
-        cat_title = QLabel("🐱 VCat")
+
+        # Title
+        cat_title = QLabel("VCat")
         cat_title.setFont(QFont(".AppleSystemUIFont", 15, QFont.Medium))
         cat_title.setStyleSheet("color: white; background: transparent;")
-        
+
+        # Settings button
+        settings_btn = GearButton()
+        settings_btn.clicked.connect(self.toggle_settings_panel)
+
         header_layout.addWidget(close_btn)
         header_layout.addStretch()
         header_layout.addWidget(cat_title)
         header_layout.addStretch()
-        header_layout.addSpacing(32)  # Balance the close button
+        header_layout.addWidget(settings_btn)
         
         header.setStyleSheet("background: transparent;")
         container_layout.addWidget(header)
@@ -362,10 +441,19 @@ class ChatDialog(QWidget):
         
         if not HAS_WHISPER:
             self.input_bar.voice_btn.setEnabled(False)
+
+        self.input_bar.set_placeholder(self._default_placeholder())
             
         container_layout.addWidget(self.input_bar)
         
         main_layout.addWidget(self.container)
+
+        # Settings panel (slide-in)
+        self.settings_panel = LLMSettingsPanel(self.container)
+        self.settings_panel.saved.connect(self._on_settings_saved)
+        self.settings_panel.closed.connect(self.hide_settings_panel)
+        self.settings_panel.hide()
+        QTimer.singleShot(0, self._update_settings_panel_geometry)
         
         # Shadow
         shadow = QGraphicsDropShadowEffect(self)
@@ -376,6 +464,8 @@ class ChatDialog(QWidget):
         
         # Add greeting
         self.add_greeting()
+
+        QTimer.singleShot(0, self.ensure_llm_setup)
         
     def paintEvent(self, event):
         """Draw the glass background."""
@@ -407,8 +497,35 @@ class ChatDialog(QWidget):
         
     def add_greeting(self):
         """Show initial greeting."""
-        bubble = SiriGradientBubble("主人好喵～有什么想跟我说的喵？")
+        language = self.chat_handler.config.get("language", "zh")
+        if language == "en":
+            greeting = "Hi! I'm VCat. What would you like to chat about? 喵～"
+        else:
+            greeting = "主人好喵～有什么想跟我说的喵？"
+        bubble = SiriGradientBubble(greeting)
         self.messages_layout.addWidget(bubble)
+
+    def _default_placeholder(self) -> str:
+        language = self.chat_handler.config.get("language", "zh")
+        if language == "en":
+            return "Say something to VCat..."
+        return "跟小猫说点什么喵～"
+
+    def _setup_required_text(self, include_meow: bool = False) -> str:
+        language = self.chat_handler.config.get("language", "zh")
+        if language == "en":
+            base = "Please complete LLM setup"
+        else:
+            base = "请先完成 LLM 配置"
+        if include_meow:
+            return f"{base}喵～"
+        return base
+
+    def _streaming_placeholder(self) -> str:
+        language = self.chat_handler.config.get("language", "zh")
+        if language == "en":
+            return "Replying..."
+        return "正在回复..."
         
     def toggle_voice_input(self):
         """Toggle voice."""
@@ -423,7 +540,7 @@ class ChatDialog(QWidget):
         
         if not self.is_voice_active:
             self.is_voice_active = True
-            self.input_bar.set_placeholder("🎤 说话中...")
+            self.input_bar.set_placeholder("语音输入中...")
             self.whisper.start_recording()
         else:
             self.is_voice_active = False
@@ -437,7 +554,7 @@ class ChatDialog(QWidget):
             self.input_bar.input_field.setText(f"{current} {text}")
         else:
             self.input_bar.input_field.setText(text)
-        self.input_bar.set_placeholder("跟小猫说点什么喵～")
+        self.input_bar.set_placeholder(self._default_placeholder())
         self.input_bar.setFocus()
         
     def _on_voice_status(self, status: str):
@@ -446,8 +563,8 @@ class ChatDialog(QWidget):
             
     def _on_voice_error(self, error: str):
         self.is_voice_active = False
-        self.input_bar.set_placeholder(f"❌ {error}")
-        QTimer.singleShot(2000, lambda: self.input_bar.set_placeholder("跟小猫说点什么喵～"))
+        self.input_bar.set_placeholder(f"错误: {error}")
+        QTimer.singleShot(2000, lambda: self.input_bar.set_placeholder(self._default_placeholder()))
         
     def send_message(self, text: str = None):
         """Send message."""
@@ -455,25 +572,176 @@ class ChatDialog(QWidget):
             text = self.input_bar.text().strip()
         if not text:
             return
+
+        if not self.input_bar.input_field.isEnabled():
+            return
             
         # User bubble
         user_bubble = UserBubble(text)
         self.messages_layout.addWidget(user_bubble)
         self.input_bar.clear()
+        self.scroll_to_bottom()
+
+        result = self.chat_handler.send_message(text)
+        if result.kind == "command":
+            if result.action == "new_session":
+                self.clear_messages()
+            if result.action == "open_settings":
+                self.show_settings_panel()
+            if result.response:
+                QTimer.singleShot(200, lambda: self.add_response(result.response))
+            return
+
+        if result.kind == "error":
+            self.add_response(result.response, is_error=True)
+            if result.action == "open_setup":
+                self.open_setup_wizard()
+            return
+
+        if result.kind == "stream":
+            self._start_streaming_response()
         
-        # Get response
-        response = self.chat_handler.send_message(text)
-        QTimer.singleShot(300, lambda: self.add_response(response))
-        
-    def add_response(self, response: str):
+    def add_response(self, response: str, is_error: bool = False):
         """Add cat response."""
-        bubble = SiriGradientBubble(response)
+        bubble = SiriGradientBubble(response, is_error=is_error)
         self.messages_layout.addWidget(bubble)
         QTimer.singleShot(50, self.scroll_to_bottom)
         
     def scroll_to_bottom(self):
         scrollbar = self.scroll_area.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
+
+    def clear_messages(self):
+        while self.messages_layout.count():
+            item = self.messages_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+        self.add_greeting()
+
+    def set_input_enabled(self, enabled: bool, placeholder: str = None):
+        self.input_bar.input_field.setEnabled(enabled)
+        self.input_bar.voice_btn.setEnabled(enabled and HAS_WHISPER)
+        if placeholder is not None:
+            self.input_bar.set_placeholder(placeholder)
+        elif enabled:
+            self.input_bar.set_placeholder(self._default_placeholder())
+
+    def ensure_llm_setup(self):
+        if self.chat_handler.is_configured():
+            self.set_input_enabled(True)
+            return
+        self.set_input_enabled(False, self._setup_required_text())
+        self.open_setup_wizard()
+
+    def open_setup_wizard(self):
+        if self.setup_wizard and self.setup_wizard.isVisible():
+            return
+        wizard = SetupWizard(self)
+        self.setup_wizard = wizard
+        wizard.configured.connect(self._on_settings_saved)
+        result = wizard.exec_()
+        if result != QDialog.Accepted:
+            self.add_response(self._setup_required_text(include_meow=True), is_error=True)
+
+    def _on_settings_saved(self):
+        self.chat_handler.reload_config()
+        if self.chat_handler.is_configured():
+            self.set_input_enabled(True)
+        else:
+            self.set_input_enabled(False, self._setup_required_text())
+
+    def _start_streaming_response(self):
+        self.active_response_bubble = SiriGradientBubble("")
+        self.messages_layout.addWidget(self.active_response_bubble)
+        self.scroll_to_bottom()
+        self.set_input_enabled(False, self._streaming_placeholder())
+
+    def _on_response_chunk(self, chunk: str):
+        if not self.active_response_bubble:
+            self.active_response_bubble = SiriGradientBubble("")
+            self.messages_layout.addWidget(self.active_response_bubble)
+        self.active_response_bubble.append_text(chunk)
+        self.scroll_to_bottom()
+
+    def _on_response_complete(self, response: str):
+        if not self.active_response_bubble:
+            self.add_response(response)
+        else:
+            if not self.active_response_bubble.text:
+                self.active_response_bubble.set_text(response)
+        self.active_response_bubble = None
+        if self.chat_handler.is_configured():
+            self.set_input_enabled(True)
+        self.scroll_to_bottom()
+
+    def _on_response_error(self, message: str):
+        if self.active_response_bubble:
+            self.active_response_bubble.is_error = True
+            self.active_response_bubble.set_text(message)
+            self.active_response_bubble.update()
+            self.active_response_bubble = None
+        else:
+            self.add_response(message, is_error=True)
+        if self.chat_handler.is_configured():
+            self.set_input_enabled(True)
+        self.scroll_to_bottom()
+
+    def _update_settings_panel_geometry(self):
+        if not self.settings_panel:
+            return
+        panel_width = 280
+        self.settings_panel.setFixedWidth(panel_width)
+        self.settings_panel.setFixedHeight(self.container.height())
+        base_x = self.container.geometry().x()
+        base_y = self.container.geometry().y()
+        hidden_x = base_x + self.container.width()
+        visible_x = hidden_x - panel_width
+        x = visible_x if self.panel_visible else hidden_x
+        self.settings_panel.move(x, base_y)
+
+    def toggle_settings_panel(self):
+        if self.panel_visible:
+            self.hide_settings_panel()
+        else:
+            self.show_settings_panel()
+
+    def show_settings_panel(self):
+        if not self.settings_panel:
+            return
+        self.panel_visible = True
+        self.settings_panel.show()
+        self.settings_panel.raise_()
+        self._animate_settings_panel(True)
+
+    def hide_settings_panel(self):
+        if not self.settings_panel:
+            return
+        self.panel_visible = False
+        self._animate_settings_panel(False)
+
+    def _animate_settings_panel(self, show: bool):
+        self._update_settings_panel_geometry()
+        start_pos = self.settings_panel.pos()
+        base_x = self.container.geometry().x()
+        base_y = self.container.geometry().y()
+        hidden_x = base_x + self.container.width()
+        visible_x = hidden_x - self.settings_panel.width()
+        end_x = visible_x if show else hidden_x
+        end_pos = QPoint(end_x, base_y)
+
+        self.panel_animation = QPropertyAnimation(self.settings_panel, b"pos", self)
+        self.panel_animation.setDuration(220)
+        self.panel_animation.setEasingCurve(QEasingCurve.OutCubic)
+        self.panel_animation.setStartValue(start_pos)
+        self.panel_animation.setEndValue(end_pos)
+        if not show:
+            self.panel_animation.finished.connect(self.settings_panel.hide)
+        self.panel_animation.start()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_settings_panel_geometry()
     
     # ===== Drag support =====
     def mousePressEvent(self, event):

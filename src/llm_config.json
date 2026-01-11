@@ -1,0 +1,19 @@
+{
+  "language": "zh",
+  "custom_personality": "",
+  "temperature": 0.7,
+  "max_tokens": 1024,
+  "timeout_seconds": 30,
+  "providers": [
+    {
+      "name": "OpenAI",
+      "endpoint_url": "https://api.openai.com/v1",
+      "encrypted_api_key": "gAAAAABpY1k9xwLKZnCfQ3ISFqLLyoZJMhC55spCsJCLwZUIuIFPWMcWH9J0I2hTen-lAfItdlijNudzaVN1difh6oIUsVBYSREzLljSXTk87ABPhC5PxXPrku_3abyzDpDH9R3gerGieWnJwQYTeEDIpgogXBHVCzIUVufzbhmo36pOur161_CI774UBDox5rJm2RG0ke5tmyY_EjT4y35fQQhLuEjE3BJ6J9KjFy95SXoC8kGShk_zS7bLg-SovVJRHxi-UZwi46LZ0HduuSbUBskRAwWTl2ya7D7OvdpdnnuiyKj6CJ0=",
+      "model_name": "gpt-4o-mini",
+      "is_default": true,
+      "available_models": [
+        "gpt-4o-mini"
+      ]
+    }
+  ]
+}

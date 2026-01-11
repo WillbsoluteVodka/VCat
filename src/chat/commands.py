@@ -4,6 +4,8 @@ All responses must end with 「喵～」
 """
 
 import random
+from dataclasses import dataclass
+from typing import Optional
 
 # Command patterns and their responses
 # Each key can be a tuple of possible inputs, value is a list of possible responses
@@ -95,7 +97,7 @@ COMMANDS = {
     
     # Help command
     ("/help", "帮助", "help", "有什么功能"): [
-        "我可以陪主人聊天喵～\n试试说：\n• 你好\n• 你是谁\n• 你在干嘛\n• 晚安/早安\n• 我爱你\n还有很多喵～自己探索吧喵～",
+        "我可以陪主人聊天喵～\n试试说：\n• 你好\n• 你是谁\n• 你在干嘛\n• 晚安/早安\n• 我爱你\n命令：\n• /new 新对话\n• /memory 记忆状态\n• /settings 打开设置\n还有很多喵～自己探索吧喵～",
     ],
 }
 
@@ -124,3 +126,34 @@ def get_response(user_input: str) -> str:
     
     # No match found, return default response
     return random.choice(DEFAULT_RESPONSES)
+
+
+@dataclass
+class CommandResult:
+    handled: bool
+    response: str = ""
+    action: Optional[str] = None
+
+
+COMMAND_ACTIONS = {
+    "/new": CommandResult(True, "开启新的对话了喵～", "new_session"),
+    "/memory": CommandResult(True, "记忆功能还没开启喵～", None),
+    "/settings": CommandResult(True, "正在打开设置喵～", "open_settings"),
+    "/help": CommandResult(True, COMMANDS[("/help", "帮助", "help", "有什么功能")][0], None),
+}
+
+
+def handle_command(user_input: str) -> CommandResult:
+    text = (user_input or "").strip()
+    if not text:
+        return CommandResult(False)
+
+    if not text.startswith("/"):
+        return CommandResult(False)
+
+    cmd = text.split()[0].lower()
+    result = COMMAND_ACTIONS.get(cmd)
+    if result:
+        return result
+
+    return CommandResult(True, "这个命令我还不认识喵～试试 /help 喵～", None)
